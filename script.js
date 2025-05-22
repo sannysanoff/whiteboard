@@ -976,63 +976,6 @@ function calculatePerspectiveMatrix() {
 }
 
 
-// Helper function to solve a linear system Ax = b using Gauss-Jordan elimination
-// A is an N x N matrix (array of arrays), b is an N x 1 vector (array)
-// Returns solution vector x, or null if matrix is singular or system is inconsistent
-function solveLinearSystem(A_orig, b_orig) {
-    const N = A_orig.length;
-    if (N === 0 || A_orig[0].length !== N || b_orig.length !== N) {
-        console.error("Invalid input to solveLinearSystem.");
-        return null;
-    }
-
-    // Create augmented matrix [A|b] and clone A_orig, b_orig to avoid modifying them
-    const A = A_orig.map(row => [...row]);
-    const b = [...b_orig];
-
-    for (let i = 0; i < N; i++) {
-        // Pivot selection: find row with max absolute value in current column i, below current row i
-        let maxRow = i;
-        for (let k = i + 1; k < N; k++) {
-            if (Math.abs(A[k][i]) > Math.abs(A[maxRow][i])) {
-                maxRow = k;
-            }
-        }
-
-        // Swap rows in A and b
-        [A[i], A[maxRow]] = [A[maxRow], A[i]];
-        [b[i], b[maxRow]] = [b[maxRow], b[i]];
-
-        // Check for singularity
-        if (Math.abs(A[i][i]) < 1e-10) { // Epsilon for near-zero pivot
-            console.warn("Singular matrix or near-zero pivot encountered in Gauss-Jordan elimination.");
-            return null; 
-        }
-
-        // Normalize pivot row: divide by pivot A[i][i]
-        // This makes A[i][i] = 1
-        const pivotVal = A[i][i];
-        for (let j = i; j < N; j++) {
-            A[i][j] /= pivotVal;
-        }
-        b[i] /= pivotVal;
-
-        // Eliminate other rows
-        for (let k = 0; k < N; k++) {
-            if (k !== i) {
-                const factor = A[k][i];
-                for (let j = i; j < N; j++) {
-                    A[k][j] -= factor * A[i][j];
-                }
-                b[k] -= factor * b[i];
-            }
-        }
-    }
-    // After Gauss-Jordan, A should be identity matrix, and b will contain the solution vector x
-    return b; 
-}
-
-
 // Switch to whiteboard mode
 function startWhiteboardMode() {
     // Animate transition
@@ -1216,16 +1159,16 @@ function updateWhiteboardLayout() {
     const wbWidth = parseFloat(canvasStyle.width); // This is currentWhiteboardDrawingWidth
     // const wbHeight = parseFloat(canvasStyle.height); // This is currentWhiteboardDrawingHeight
 
-    const handleCssWidth = wbLeftHandle.offsetWidth; // Get actual width from CSS/browser
-    const handleCssHeight = wbLeftHandle.offsetHeight; // Get actual height from CSS/browser
+    const handleActualWidth = 8; // Use fixed width from CSS (8px)
+    const handleActualHeight = 70; // Use fixed height from CSS (70px)
 
-    wbLeftHandle.style.top = (wbTop + currentWhiteboardDrawingHeight / 2 - handleCssHeight / 2) + 'px';
+    wbLeftHandle.style.top = (wbTop + currentWhiteboardDrawingHeight / 2 - handleActualHeight / 2) + 'px';
     // Position left handle's left edge at the canvas's left edge
     wbLeftHandle.style.left = wbLeft + 'px'; 
     
     wbRightHandle.style.top = wbLeftHandle.style.top;
     // Position right handle's left edge so its right edge is at the canvas's right edge
-    wbRightHandle.style.left = (wbLeft + wbWidth - handleCssWidth) + 'px';
+    wbRightHandle.style.left = (wbLeft + wbWidth - handleActualWidth) + 'px';
 }
 
 function startWhiteboardResize(event) {
