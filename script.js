@@ -637,6 +637,69 @@ function drawTrapezoid() {
     }
 }
 
+// Helper function to clip a line to a rectangle using Cohen-Sutherland algorithm
+function clipLineToRect(x1, y1, x2, y2, rectX, rectY, rectWidth, rectHeight) {
+    const INSIDE = 0; // 0000
+    const LEFT = 1;   // 0001
+    const RIGHT = 2;  // 0010
+    const BOTTOM = 4; // 0100
+    const TOP = 8;    // 1000
+    
+    function computeOutCode(x, y) {
+        let code = INSIDE;
+        if (x < rectX) code |= LEFT;
+        else if (x > rectX + rectWidth) code |= RIGHT;
+        if (y < rectY) code |= BOTTOM;
+        else if (y > rectY + rectHeight) code |= TOP;
+        return code;
+    }
+    
+    let outcode1 = computeOutCode(x1, y1);
+    let outcode2 = computeOutCode(x2, y2);
+    let accept = false;
+    
+    while (true) {
+        if (!(outcode1 | outcode2)) {
+            // Both points inside rectangle
+            accept = true;
+            break;
+        } else if (outcode1 & outcode2) {
+            // Both points share an outside zone (completely outside)
+            break;
+        } else {
+            // Line needs clipping
+            let x, y;
+            let outcodeOut = outcode1 ? outcode1 : outcode2;
+            
+            if (outcodeOut & TOP) {
+                x = x1 + (x2 - x1) * (rectY + rectHeight - y1) / (y2 - y1);
+                y = rectY + rectHeight;
+            } else if (outcodeOut & BOTTOM) {
+                x = x1 + (x2 - x1) * (rectY - y1) / (y2 - y1);
+                y = rectY;
+            } else if (outcodeOut & RIGHT) {
+                y = y1 + (y2 - y1) * (rectX + rectWidth - x1) / (x2 - x1);
+                x = rectX + rectWidth;
+            } else if (outcodeOut & LEFT) {
+                y = y1 + (y2 - y1) * (rectX - x1) / (x2 - x1);
+                x = rectX;
+            }
+            
+            if (outcodeOut === outcode1) {
+                x1 = x;
+                y1 = y;
+                outcode1 = computeOutCode(x1, y1);
+            } else {
+                x2 = x;
+                y2 = y;
+                outcode2 = computeOutCode(x2, y2);
+            }
+        }
+    }
+    
+    return accept ? { x1, y1, x2, y2 } : null;
+}
+
 // Helper function to get event coordinates relative to the canvas
 // This function is kept as it might be useful for other interactions with overlayCanvas,
 // but it's not used for the HTML handle dragging.
@@ -776,20 +839,19 @@ function handleTrapezoidInteractionMove(event) {
                 magnifierPoints.push([magnifierX, magnifierY]);
             }
             
-            // Draw lines between adjacent trapezoid points
+            // Draw lines between adjacent trapezoid points (with clipping)
             magnifierCtx.beginPath();
             for (let i = 0; i < magnifierPoints.length; i++) {
                 const currentPoint = magnifierPoints[i];
                 const nextPoint = magnifierPoints[(i + 1) % magnifierPoints.length];
                 
-                // Only draw if both points are within the magnifier view
-                if (currentPoint[0] >= 0 && currentPoint[0] <= destSize && 
-                    currentPoint[1] >= 0 && currentPoint[1] <= destSize &&
-                    nextPoint[0] >= 0 && nextPoint[0] <= destSize && 
-                    nextPoint[1] >= 0 && nextPoint[1] <= destSize) {
-                    
-                    magnifierCtx.moveTo(currentPoint[0], currentPoint[1]);
-                    magnifierCtx.lineTo(nextPoint[0], nextPoint[1]);
+                // Clip line to magnifier bounds and draw if any part is visible
+                const clippedLine = clipLineToRect(currentPoint[0], currentPoint[1], 
+                                                 nextPoint[0], nextPoint[1], 
+                                                 0, 0, destSize, destSize);
+                if (clippedLine) {
+                    magnifierCtx.moveTo(clippedLine.x1, clippedLine.y1);
+                    magnifierCtx.lineTo(clippedLine.x2, clippedLine.y2);
                 }
             }
             magnifierCtx.stroke();
