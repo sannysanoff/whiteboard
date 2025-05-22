@@ -219,19 +219,22 @@ h1 {
     /* top, left will be set by JS via style attribute */
 }
 
-#canvas-container:hover .whiteboard-resize-handle {
-    display: block;
-}
-
 .whiteboard-resize-handle {
     position: absolute;
-    width: 10px; /* Width of the handle */
-    height: 50px; /* Visual height of the handle */
-    background-color: rgba(100, 100, 100, 0.5);
+    width: 12px; /* Slightly wider for easier interaction */
+    height: 60px; /* Slightly taller */
+    background-color: rgba(100, 100, 100, 0.3); /* Default subtle background */
     cursor: ew-resize;
-    z-index: 10; /* Ensure handles are above the canvas if overlapping, but below UI controls */
-    display: none; /* Initially hidden, shown on container hover */
-    border-radius: 3px;
+    z-index: 10; 
+    display: none; /* Initially hidden; JS controls visibility based on mode */
+    border-radius: 4px;
+    opacity: 0.6; /* Default subtle opacity when visible */
+    transition: opacity 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+.whiteboard-resize-handle:hover {
+    background-color: rgba(80, 80, 80, 0.7); /* Darker on hover */
+    opacity: 1; /* Fully opaque on hover */
 }
 
 /* Specific styles if needed for left/right, but positioning is via JS */

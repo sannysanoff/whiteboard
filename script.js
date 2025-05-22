@@ -161,20 +161,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Whiteboard resize handles
     wbLeftHandle = document.getElementById('wb-left-handle');
     wbRightHandle = document.getElementById('wb-right-handle');
-    const canvasContainer = document.getElementById('canvas-container');
+    // const canvasContainer = document.getElementById('canvas-container'); // No longer needed for these listeners
 
-    canvasContainer.addEventListener('mouseenter', () => {
-        if (isWhiteboardMode && !isResizingWhiteboard) {
-            wbLeftHandle.style.display = 'block';
-            wbRightHandle.style.display = 'block';
-        }
-    });
-    canvasContainer.addEventListener('mouseleave', () => {
-        if (isWhiteboardMode && !isResizingWhiteboard) {
-            wbLeftHandle.style.display = 'none';
-            wbRightHandle.style.display = 'none';
-        }
-    });
+    // Mouseenter/mouseleave listeners on canvasContainer for handle visibility are removed.
+    // Visibility is now controlled by mode (setup/whiteboard) and CSS handles hover effects.
 
     [wbLeftHandle, wbRightHandle].forEach(handle => {
         handle.addEventListener('mousedown', startWhiteboardResize);
@@ -1075,7 +1065,13 @@ function startWhiteboardMode() {
                         initWebGL();
                         isWebGLInitialized = true;
                     }
-                    updateWhiteboardLayout(); // Position and style canvas
+                    // Make handles visible and set their default appearance
+                    wbLeftHandle.style.display = 'block';
+                    wbRightHandle.style.display = 'block';
+                    // Opacity and background are set by CSS, but can be explicitly set here if needed
+                    // wbLeftHandle.style.opacity = '0.6'; 
+                    // wbRightHandle.style.opacity = '0.6';
+                    updateWhiteboardLayout(); // Position and style canvas and handles
                 }
             }, 30);
         }
@@ -1119,6 +1115,11 @@ function backToSetupMode() {
     }, 30);
     
     isWhiteboardMode = false;
+    // Hide whiteboard resize handles
+    if (wbLeftHandle && wbRightHandle) {
+        wbLeftHandle.style.display = 'none';
+        wbRightHandle.style.display = 'none';
+    }
 }
 
 // Capture and process the current frame
@@ -1223,9 +1224,9 @@ function startWhiteboardResize(event) {
     wbResizeInitialWidth = currentWhiteboardDrawingWidth;
 
     document.body.style.cursor = 'ew-resize';
-    // Keep handles visible during resize
-    wbLeftHandle.style.display = 'block';
-    wbRightHandle.style.display = 'block';
+    // Make the dragged handle more prominent
+    event.target.style.opacity = '1';
+    event.target.style.backgroundColor = 'rgba(70, 70, 70, 0.8)'; // Active drag color
 }
 
 function doWhiteboardResize(event) {
@@ -1272,10 +1273,14 @@ function stopWhiteboardResize() {
     draggedWhiteboardHandleSide = null;
     document.body.style.cursor = 'default';
 
-    // Hide handles if mouse is not over the container
-    const canvasContainer = document.getElementById('canvas-container');
-    if (!canvasContainer.matches(':hover')) {
-        wbLeftHandle.style.display = 'none';
-        wbRightHandle.style.display = 'none';
+    // Reset opacity and background for both handles to their default visible state.
+    // CSS :hover will take over if mouse is still over one of them.
+    if (wbLeftHandle) {
+        wbLeftHandle.style.opacity = ''; // Revert to CSS default
+        wbLeftHandle.style.backgroundColor = ''; // Revert to CSS default
+    }
+    if (wbRightHandle) {
+        wbRightHandle.style.opacity = ''; // Revert to CSS default
+        wbRightHandle.style.backgroundColor = ''; // Revert to CSS default
     }
 }
