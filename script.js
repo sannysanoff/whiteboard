@@ -1005,6 +1005,7 @@ function startWhiteboardMode() {
                 
                 if (whiteboardOpacity >= 1) {
                     clearInterval(fadeIn);
+                    whiteboardView.classList.add('active'); // Add .active class
                     if (!isWebGLInitialized) {
                         initWebGL();
                         isWebGLInitialized = true;
@@ -1037,6 +1038,7 @@ function backToSetupMode() {
         
         if (opacity <= 0) {
             clearInterval(fadeOut);
+            whiteboardView.classList.remove('active'); // Remove .active class
             whiteboardView.style.display = 'none';
             
             // Fade in setup view

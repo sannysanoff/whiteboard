@@ -19,7 +19,7 @@ body {
     padding: 20px;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch; /* Changed from center to stretch */
     justify-content: center;
     min-height: 100vh;
 }
@@ -203,7 +203,7 @@ h1 {
     width: 100%;
     height: 100vh;
     flex-direction: column;
-    align-self: stretch; /* Ensure it stretches to the full width of .container */
+    /* align-self: stretch; /* No longer needed as parent .container uses align-items: stretch */
 }
 
 #canvas-container {
