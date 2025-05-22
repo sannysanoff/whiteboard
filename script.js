@@ -627,6 +627,23 @@ function calculatePerspectiveMatrix() {
         h = B_h.map(val => val / norm_B_h); // Normalize for next iteration
     }
     // h is now the eigenvector of AtA corresponding to its smallest eigenvalue.
+
+    // Normalize h such that h[8] (the H_22 element) is 1.
+    // This is a common practice for homography matrices and can improve stability.
+    // Only do this if h[8] is not excessively small to avoid division by near-zero.
+    if (Math.abs(h[8]) > 1e-8) { // Threshold to prevent division by very small h[8]
+        const scale = 1.0 / h[8];
+        for (let i = 0; i < 9; i++) {
+            h[i] *= scale;
+        }
+    } else {
+        // If h[8] is very small, the matrix represents a projection where the plane
+        // containing the destination points maps to a plane through the camera's center of projection
+        // (affine camera model, or mapping to points at infinity).
+        // In such cases, ||h||=1 normalization (which is already done by the solver) is often preferred.
+        // We can log this situation.
+        console.warn("h[8] is very small (" + h[8] + "). Perspective matrix might be unusual. Retaining ||h||=1 normalization.");
+    }
     // --- End of new solver ---
     
     // Reshape h into a 3x3 matrix
