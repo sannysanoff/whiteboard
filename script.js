@@ -458,10 +458,10 @@ function calculateTrapezoidPoints(zoomFactor = 1.0) {
 // Get needle tip offset for each handle type
 function getNeedleTipOffset(handleIndex) {
     switch(handleIndex) {
-        case 0: // Bottom-right (BR) - tilted right
-            return { x: 4, y: 38 }; // Needle tip is offset right and slightly up
-        case 1: // Bottom-left (BL) - tilted left  
+        case 0: // Bottom-right (BR) - tilted left (needle points left from circle)
             return { x: -4, y: 38 }; // Needle tip is offset left and slightly up
+        case 1: // Bottom-left (BL) - tilted right (needle points right from circle)
+            return { x: 4, y: 38 }; // Needle tip is offset right and slightly up
         case 2: // Top-left (UL) - vertical
             return { x: 0, y: 40 }; // Needle tip is straight down
         case 3: // Top-right (UR) - vertical

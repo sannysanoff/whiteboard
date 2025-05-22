@@ -148,26 +148,26 @@ h1 {
 /* Bottom-left corner - tilted left */
 #handle-1::before {
     bottom: 2px;
-    left: 25%;
-    transform: translateX(-50%) rotate(-30deg);
+    left: 75%;
+    transform: translateX(-50%) rotate(30deg);
 }
 
 #handle-1::after {
     top: 0;
-    left: 25%;
+    left: 75%;
     transform: translateX(-50%);
 }
 
 /* Bottom-right corner - tilted right */
 #handle-0::before {
     bottom: 2px;
-    left: 75%;
-    transform: translateX(-50%) rotate(30deg);
+    left: 25%;
+    transform: translateX(-50%) rotate(-30deg);
 }
 
 #handle-0::after {
     top: 0;
-    left: 75%;
+    left: 25%;
     transform: translateX(-50%);
 }
 
