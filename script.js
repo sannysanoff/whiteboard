@@ -522,21 +522,72 @@ function calculatePerspectiveMatrix() {
         return v.map(val => val / magnitude);
     };
     
-    // Power iteration (simplified)
-    for (let iter = 0; iter < 10; iter++) {
-        // Matrix-vector multiplication
-        const Ah = Array(9).fill(0);
+    // --- Start of new solver for Ah=0 using eigenvalue method for smallest eigenvalue ---
+
+    // Helper for matrix (9x9) * vector (9x1) multiplication
+    const matVecMult = (matrix, vector) => {
+        const result = Array(9).fill(0);
         for (let i = 0; i < 9; i++) {
             for (let j = 0; j < 9; j++) {
-                Ah[i] += AtA[i][j] * h[j];
+                result[i] += matrix[i][j] * vector[j];
             }
         }
+        return result;
+    };
+
+    // Helper to get L2 norm (magnitude) of a vector
+    const vecNorm = (v) => Math.sqrt(v.reduce((sum, val) => sum + val * val, 0));
+
+    // The normalize function is already defined in this scope from the earlier part of the function.
+    // const normalize = (v) => { ... };
+
+    // 1. Estimate lambda_max (largest eigenvalue) of AtA and its eigenvector h_large.
+    //    AtA is symmetric, so its eigenvalues are real.
+    let h_large = Array(9).fill(1.0 / Math.sqrt(9)); // Initial normalized guess for eigenvector
+    let lambda_max = 0;
+    const K_power_iter = 20; // Number of iterations for lambda_max estimation
+
+    for (let iter = 0; iter < K_power_iter; iter++) {
+        const AtA_h_large = matVecMult(AtA, h_large);
+        lambda_max = vecNorm(AtA_h_large); // Eigenvalue is the norm after multiplication if h_large is normalized
         
-        // Update h
-        h = normalize(Ah);
+        if (lambda_max === 0) {
+             console.error("lambda_max is zero during power iteration. AtA might be zero or h_large became zero. Fallback to identity.");
+             return { matrix: [1,0,0, 0,1,0, 0,0,1], srcPoints: srcPoints };
+        }
+        h_large = AtA_h_large.map(val => val / lambda_max); // Normalize for next iteration
     }
+    // h_large is now the eigenvector for lambda_max. lambda_max is the largest eigenvalue.
+
+    // 2. Form matrix B = lambda_max * I - AtA.
+    //    The largest eigenvalue of B corresponds to the smallest eigenvalue of AtA.
+    const B = Array(9).fill(null).map(() => Array(9).fill(0));
+    for (let i = 0; i < 9; i++) {
+        for (let j = 0; j < 9; j++) {
+            B[i][j] = (i === j ? lambda_max : 0) - AtA[i][j];
+        }
+    }
+
+    // 3. Find h (eigenvector of AtA for smallest eigenvalue) using power iteration on B.
+    //    This h will be the eigenvector of B for its largest eigenvalue.
+    let h = Array(9).fill(1.0 / Math.sqrt(9)); // Initial normalized guess
+    const K_inverse_power_iter = 20; // Number of iterations
+
+    for (let iter = 0; iter < K_inverse_power_iter; iter++) {
+        const B_h = matVecMult(B, h);
+        const norm_B_h = vecNorm(B_h); // This is the largest eigenvalue of B
+        
+        if (norm_B_h === 0) {
+            console.error("Norm of B_h is zero. This implies h is in the null space of B (e.g. AtA has multiple eigenvalues equal to lambda_max or other numerical issues). Fallback to identity.");
+            // This can also happen if lambda_max was the only non-zero eigenvalue, making B mostly zero.
+            return { matrix: [1,0,0, 0,1,0, 0,0,1], srcPoints: srcPoints };
+        }
+        h = B_h.map(val => val / norm_B_h); // Normalize for next iteration
+    }
+    // h is now the eigenvector of AtA corresponding to its smallest eigenvalue.
+    // --- End of new solver ---
     
-    // Reshape the result into a 3x3 matrix
+    // Reshape h into a 3x3 matrix
     const perspectiveMatrix = [
         h[0], h[1], h[2],
         h[3], h[4], h[5],
