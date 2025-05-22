@@ -369,14 +369,27 @@ async function initWebcam(deviceId = null) {
             console.log('Calculated initial whiteboard size:', containerSize);
             
             // Initial values will be properly set when whiteboard becomes visible
-            // Apply saved aspect ratio
-            currentWhiteboardDrawingWidth = containerSize;
-            currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
-            
-            // Ensure height doesn't exceed container
-            if (currentWhiteboardDrawingHeight > canvasContainer.offsetHeight) {
-                currentWhiteboardDrawingHeight = canvasContainer.offsetHeight;
-                currentWhiteboardDrawingWidth = currentWhiteboardDrawingHeight * savedAspectRatio;
+            // Apply saved aspect ratio - width/height ratio
+            if (savedAspectRatio >= 1.0) {
+                // Wider than tall - constrain by height
+                currentWhiteboardDrawingHeight = containerSize;
+                currentWhiteboardDrawingWidth = containerSize * savedAspectRatio;
+                
+                // If width exceeds container, constrain by width instead
+                if (currentWhiteboardDrawingWidth > canvasContainer.offsetWidth) {
+                    currentWhiteboardDrawingWidth = canvasContainer.offsetWidth;
+                    currentWhiteboardDrawingHeight = currentWhiteboardDrawingWidth / savedAspectRatio;
+                }
+            } else {
+                // Taller than wide - constrain by width
+                currentWhiteboardDrawingWidth = containerSize;
+                currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
+                
+                // If height exceeds container, constrain by height instead
+                if (currentWhiteboardDrawingHeight > canvasContainer.offsetHeight) {
+                    currentWhiteboardDrawingHeight = canvasContainer.offsetHeight;
+                    currentWhiteboardDrawingWidth = currentWhiteboardDrawingHeight * savedAspectRatio;
+                }
             }
             
             console.log('Set initial whiteboard dimensions:', {
@@ -1470,13 +1483,28 @@ function startWhiteboardMode() {
                     
                     // Load saved aspect ratio for final sizing
                     const savedAspectRatio = loadWhiteboardAspectRatio();
-                    currentWhiteboardDrawingWidth = containerSize;
-                    currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
                     
-                    // Ensure height doesn't exceed container
-                    if (currentWhiteboardDrawingHeight > containerSize) {
+                    // Apply saved aspect ratio properly
+                    if (savedAspectRatio >= 1.0) {
+                        // Wider than tall - constrain by height
                         currentWhiteboardDrawingHeight = containerSize;
                         currentWhiteboardDrawingWidth = containerSize * savedAspectRatio;
+                        
+                        // If width exceeds container, constrain by width instead
+                        if (currentWhiteboardDrawingWidth > containerSize) {
+                            currentWhiteboardDrawingWidth = containerSize;
+                            currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
+                        }
+                    } else {
+                        // Taller than wide - constrain by width
+                        currentWhiteboardDrawingWidth = containerSize;
+                        currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
+                        
+                        // If height exceeds container, constrain by height instead
+                        if (currentWhiteboardDrawingHeight > containerSize) {
+                            currentWhiteboardDrawingHeight = containerSize;
+                            currentWhiteboardDrawingWidth = containerSize * savedAspectRatio;
+                        }
                     }
                     
                     whiteboardCanvas.width = currentWhiteboardDrawingWidth;
@@ -1686,14 +1714,36 @@ function updateWhiteboardLayout() {
     
     console.log('Calculated limits:', {maxWidth, maxHeight, windowWidth: window.innerWidth});
 
-    // Always use the maximum available space for whiteboard
+    // Always use the maximum available space for whiteboard while preserving aspect ratio
     const oldWidth = currentWhiteboardDrawingWidth;
     const oldHeight = currentWhiteboardDrawingHeight;
     
-    // Use container size to fill available space
+    // Load and apply saved aspect ratio
+    const savedAspectRatio = loadWhiteboardAspectRatio();
     const containerSize = Math.min(canvasContainer.offsetWidth, canvasContainer.offsetHeight);
-    currentWhiteboardDrawingWidth = containerSize;
-    currentWhiteboardDrawingHeight = containerSize;
+    
+    // Apply saved aspect ratio properly
+    if (savedAspectRatio >= 1.0) {
+        // Wider than tall - constrain by height
+        currentWhiteboardDrawingHeight = containerSize;
+        currentWhiteboardDrawingWidth = containerSize * savedAspectRatio;
+        
+        // If width exceeds container, constrain by width instead
+        if (currentWhiteboardDrawingWidth > containerSize) {
+            currentWhiteboardDrawingWidth = containerSize;
+            currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
+        }
+    } else {
+        // Taller than wide - constrain by width
+        currentWhiteboardDrawingWidth = containerSize;
+        currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
+        
+        // If height exceeds container, constrain by height instead
+        if (currentWhiteboardDrawingHeight > containerSize) {
+            currentWhiteboardDrawingHeight = containerSize;
+            currentWhiteboardDrawingWidth = containerSize * savedAspectRatio;
+        }
+    }
     
     console.log('Dimension changes:', {
         oldWidth, oldHeight,
@@ -1766,7 +1816,7 @@ function doWhiteboardResize(event) {
     newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
 
     if (newWidth !== currentWhiteboardDrawingWidth) {
-        // Keep height constant, only change width (allow aspect ratio to change)
+        // Update width and save the new aspect ratio
         currentWhiteboardDrawingWidth = newWidth;
         // Height remains unchanged - no need to recalculate it
         whiteboardCanvas.width = currentWhiteboardDrawingWidth; // Update drawing buffer width
@@ -1776,8 +1826,9 @@ function doWhiteboardResize(event) {
         whiteboardCanvas.style.width = currentWhiteboardDrawingWidth + 'px';
         whiteboardCanvas.style.height = currentWhiteboardDrawingHeight + 'px';
 
-        // Save the new aspect ratio
+        // Save the new aspect ratio immediately
         saveWhiteboardAspectRatio();
+        console.log('Saved new aspect ratio:', currentWhiteboardDrawingWidth / currentWhiteboardDrawingHeight);
 
         // Update WebGL viewport and uniforms
         if (gl && program) { // Check if WebGL is initialized
