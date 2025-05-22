@@ -761,18 +761,51 @@ function handleTrapezoidInteractionMove(event) {
                                    sx, sy, sourceSize, sourceSize, 
                                    0, 0, destSize, destSize);
             
-            // Draw crosshair
+            // Draw trapezoid corners and lines in magnifier coordinates
             magnifierCtx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
             magnifierCtx.lineWidth = 1;
+            magnifierCtx.fillStyle = 'red';
+            
+            // Convert trapezoid points to magnifier coordinates
+            const magnifierPoints = [];
+            for (let i = 0; i < trapezoidPoints.length; i++) {
+                const trapPoint = trapezoidPoints[i];
+                // Convert from video coordinates to magnifier coordinates
+                const magnifierX = ((trapPoint[0] - sx) / sourceSize) * destSize;
+                const magnifierY = ((trapPoint[1] - sy) / sourceSize) * destSize;
+                magnifierPoints.push([magnifierX, magnifierY]);
+            }
+            
+            // Draw lines between adjacent trapezoid points
             magnifierCtx.beginPath();
-            magnifierCtx.moveTo(destSize / 2, 0);
-            magnifierCtx.lineTo(destSize / 2, destSize);
-            magnifierCtx.moveTo(0, destSize / 2);
-            magnifierCtx.lineTo(destSize, destSize / 2);
+            for (let i = 0; i < magnifierPoints.length; i++) {
+                const currentPoint = magnifierPoints[i];
+                const nextPoint = magnifierPoints[(i + 1) % magnifierPoints.length];
+                
+                // Only draw if both points are within the magnifier view
+                if (currentPoint[0] >= 0 && currentPoint[0] <= destSize && 
+                    currentPoint[1] >= 0 && currentPoint[1] <= destSize &&
+                    nextPoint[0] >= 0 && nextPoint[0] <= destSize && 
+                    nextPoint[1] >= 0 && nextPoint[1] <= destSize) {
+                    
+                    magnifierCtx.moveTo(currentPoint[0], currentPoint[1]);
+                    magnifierCtx.lineTo(nextPoint[0], nextPoint[1]);
+                }
+            }
             magnifierCtx.stroke();
             
+            // Draw dots for trapezoid corners that are visible in magnifier
+            for (let i = 0; i < magnifierPoints.length; i++) {
+                const point = magnifierPoints[i];
+                if (point[0] >= 0 && point[0] <= destSize && 
+                    point[1] >= 0 && point[1] <= destSize) {
+                    magnifierCtx.beginPath();
+                    magnifierCtx.arc(point[0], point[1], 2, 0, 2 * Math.PI);
+                    magnifierCtx.fill();
+                }
+            }
+            
             // Draw center dot
-            magnifierCtx.fillStyle = 'red';
             magnifierCtx.beginPath();
             magnifierCtx.arc(destSize / 2, destSize / 2, 2, 0, 2 * Math.PI);
             magnifierCtx.fill();
@@ -784,18 +817,8 @@ function handleTrapezoidInteractionMove(event) {
             magnifierCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
             magnifierCtx.fillRect(0, 0, destSize, destSize);
             
-            // Draw crosshair and center dot even when out of bounds
+            // Draw center dot even when out of bounds
             const destSize = 100; // Define destSize for out-of-bounds case
-            magnifierCtx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
-            magnifierCtx.lineWidth = 1;
-            magnifierCtx.beginPath();
-            magnifierCtx.moveTo(destSize / 2, 0);
-            magnifierCtx.lineTo(destSize / 2, destSize);
-            magnifierCtx.moveTo(0, destSize / 2);
-            magnifierCtx.lineTo(destSize, destSize / 2);
-            magnifierCtx.stroke();
-            
-            // Draw center dot
             magnifierCtx.fillStyle = 'red';
             magnifierCtx.beginPath();
             magnifierCtx.arc(destSize / 2, destSize / 2, 2, 0, 2 * Math.PI);
