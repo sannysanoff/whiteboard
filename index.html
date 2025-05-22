@@ -93,15 +93,29 @@
         </div>
         
         <div id="whiteboard-view">
+            <div class="floating-controls">
+                <button id="back-btn" class="fab fab-back" title="Back to Setup">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 11H7.83L13.42 5.41L12 4L4 12L12 20L13.41 18.59L7.83 13H20V11Z" fill="currentColor"/>
+                    </svg>
+                </button>
+                <div class="fab-group">
+                    <button id="copy-btn" class="fab fab-action" title="Copy to Clipboard">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                    <button id="save-btn" class="fab fab-action" title="Save Image">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V7L17 3ZM19 19H5V5H16.17L19 7.83V19ZM12 12C10.34 12 9 13.34 9 15S10.34 18 12 18 15 16.66 15 15 13.66 12 12 12ZM6 6H15V10H6V6Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
             <div id="canvas-container">
                 <canvas id="whiteboard-canvas"></canvas>
                 <div class="whiteboard-resize-handle" id="wb-left-handle" data-side="left"></div>
                 <div class="whiteboard-resize-handle" id="wb-right-handle" data-side="right"></div>
-            </div>
-            <div class="controls">
-                <button id="back-btn">Back to Setup</button>
-                <button id="copy-btn">Copy</button>
-                <button id="save-btn">Save</button>
             </div>
         </div>
     </div>
