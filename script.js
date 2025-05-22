@@ -712,23 +712,20 @@ function handleTrapezoidInteractionMove(event) {
     // Determine the actual index in trapezoidPoints array to update
     const actualTrapezoidPointIndex = trapezoidPointIndices[handleIdx];
 
-    // Convert container coordinates to video coordinates
-    // The video element might be scaled to fit the container while maintaining aspect ratio
-    const videoElement = webcam;
-    const videoRect = videoElement.getBoundingClientRect();
-    const cameraContainerRect = containerRect;
-    
-    // Calculate the actual video display area within the container
-    const videoDisplayX = (containerX / cameraContainerRect.width) * videoElement.offsetWidth;
-    const videoDisplayY = (containerY / cameraContainerRect.height) * videoElement.offsetHeight;
-    
-    // Convert to actual video coordinates (intrinsic video dimensions)
-    const canvasX = (videoDisplayX / videoElement.offsetWidth) * videoElement.videoWidth;
-    const canvasY = (videoDisplayY / videoElement.offsetHeight) * videoElement.videoHeight;
+    // Convert container coordinates to canvas coordinates for trapezoid points (simple scaling)
+    const canvasX = (containerX / containerRect.width) * videoWidth;
+    const canvasY = (containerY / containerRect.height) * videoHeight;
 
     // Update the corresponding trapezoidPoint. No clamping.
     trapezoidPoints[actualTrapezoidPointIndex][0] = canvasX;
     trapezoidPoints[actualTrapezoidPointIndex][1] = canvasY;
+    
+    // Convert container coordinates to actual video coordinates for magnifier
+    const videoElement = webcam;
+    const videoDisplayX = (containerX / containerRect.width) * videoElement.offsetWidth;
+    const videoDisplayY = (containerY / containerRect.height) * videoElement.offsetHeight;
+    const magnifierVideoX = (videoDisplayX / videoElement.offsetWidth) * videoElement.videoWidth;
+    const magnifierVideoY = (videoDisplayY / videoElement.offsetHeight) * videoElement.videoHeight;
     
     // Update matrix and handle positions
     updatePerspectiveMatrix();
@@ -744,11 +741,11 @@ function handleTrapezoidInteractionMove(event) {
         magnifierDiv.style.left = `${containerX - (magnifierWidth / 2)}px`;
         magnifierDiv.style.top = `${containerY - magnifierHeight - 20}px`;
 
-        // Check if cursor is within video bounds
-        if (canvasX >= 0 && canvasX <= webcam.videoWidth && canvasY >= 0 && canvasY <= webcam.videoHeight) {
+        // Check if cursor is within video bounds using magnifier coordinates
+        if (magnifierVideoX >= 0 && magnifierVideoX <= webcam.videoWidth && magnifierVideoY >= 0 && magnifierVideoY <= webcam.videoHeight) {
             // Draw magnified content from the cursor position in video coordinates
-            const videoFeedX = canvasX; // Cursor position in video coordinates
-            const videoFeedY = canvasY; // Cursor position in video coordinates
+            const videoFeedX = magnifierVideoX; // Cursor position in video coordinates
+            const videoFeedY = magnifierVideoY; // Cursor position in video coordinates
 
             const sourceSize = 50; // 50x50 pixels from video
             const destSize = 100;  // Drawn as 100x100 on magnifier canvas
@@ -757,7 +754,7 @@ function handleTrapezoidInteractionMove(event) {
             const sy = videoFeedY - sourceSize / 2;
 
             // Debug log: print coordinates in one line
-            console.log(`Mouse: canvas(${containerX.toFixed(1)},${containerY.toFixed(1)}) webcam(${canvasX.toFixed(1)},${canvasY.toFixed(1)}) | Minimap: canvas(${(sx + sourceSize/2).toFixed(1)},${(sy + sourceSize/2).toFixed(1)}) webcam(${videoFeedX.toFixed(1)},${videoFeedY.toFixed(1)}) | Canvas max: (${webcam.videoWidth},${webcam.videoHeight})`);
+            console.log(`Mouse: canvas(${containerX.toFixed(1)},${containerY.toFixed(1)}) webcam(${magnifierVideoX.toFixed(1)},${magnifierVideoY.toFixed(1)}) | Minimap: canvas(${(sx + sourceSize/2).toFixed(1)},${(sy + sourceSize/2).toFixed(1)}) webcam(${videoFeedX.toFixed(1)},${videoFeedY.toFixed(1)}) | Canvas max: (${webcam.videoWidth},${webcam.videoHeight})`);
 
             magnifierCtx.clearRect(0, 0, destSize, destSize);
             magnifierCtx.drawImage(webcam, 
@@ -765,7 +762,7 @@ function handleTrapezoidInteractionMove(event) {
                                    0, 0, destSize, destSize);
         } else {
             // Clear magnifier when outside video bounds
-            console.log(`Mouse: canvas(${containerX.toFixed(1)},${containerY.toFixed(1)}) webcam(${canvasX.toFixed(1)},${canvasY.toFixed(1)}) | OUT OF BOUNDS | Canvas max: (${webcam.videoWidth},${webcam.videoHeight})`);
+            console.log(`Mouse: canvas(${containerX.toFixed(1)},${containerY.toFixed(1)}) webcam(${magnifierVideoX.toFixed(1)},${magnifierVideoY.toFixed(1)}) | OUT OF BOUNDS | Canvas max: (${webcam.videoWidth},${webcam.videoHeight})`);
             magnifierCtx.clearRect(0, 0, destSize, destSize);
             // Fill with a dark background to indicate out of bounds
             magnifierCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
