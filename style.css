@@ -220,6 +220,7 @@ h1 {
     height: calc(100vh - 60px); /* Account for control bar */
     background-color: #f0f0f0;
     overflow: visible;
+    border: 2px solid red !important; /* Temporary debug border */
 }
 
 #whiteboard-canvas {
@@ -229,6 +230,7 @@ h1 {
     background-color: white;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     transition: width 0.2s ease, height 0.2s ease;
+    border: 2px solid blue !important; /* Temporary debug border */
 }
 
 .whiteboard-resize-handle {

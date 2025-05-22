@@ -286,10 +286,23 @@ async function initWebcam(deviceId = null) {
             
             // --- Whiteboard Canvas initial drawing surface size ---
             const canvasContainer = document.getElementById('canvas-container');
+            console.log('initWebcam container dimensions:', {
+                clientWidth: canvasContainer.clientWidth,
+                clientHeight: canvasContainer.clientHeight,
+                offsetWidth: canvasContainer.offsetWidth,
+                offsetHeight: canvasContainer.offsetHeight
+            });
+            
             // Use 1:1 aspect ratio for the whiteboard
             const containerSize = Math.min(canvasContainer.clientWidth, canvasContainer.clientHeight);
+            console.log('Calculated initial whiteboard size:', containerSize);
+            
             currentWhiteboardDrawingWidth = containerSize;
             currentWhiteboardDrawingHeight = containerSize;
+            console.log('Set initial whiteboard dimensions:', {
+                width: currentWhiteboardDrawingWidth,
+                height: currentWhiteboardDrawingHeight
+            });
             whiteboardCanvas.width = currentWhiteboardDrawingWidth;
             whiteboardCanvas.height = currentWhiteboardDrawingHeight;
 
@@ -994,6 +1007,19 @@ function calculatePerspectiveMatrix() {
 
 // Switch to whiteboard mode
 function startWhiteboardMode() {
+    // Add resize observer for debugging
+    const resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+            console.log('Canvas container resized:', {
+                width: entry.contentRect.width,
+                height: entry.contentRect.height
+            });
+        }
+    });
+    resizeObserver.observe(document.getElementById('canvas-container'));
+
+    console.log('Starting whiteboard mode transition');
+    
     // Animate transition
     const setupView = document.getElementById('setup-view');
     const whiteboardView = document.getElementById('whiteboard-view');
@@ -1158,13 +1184,29 @@ function updateWhiteboardLayout() {
     }
 
     const canvasContainer = document.getElementById('canvas-container');
+    if (!canvasContainer) {
+        console.error('Canvas container not found');
+        return;
+    }
+
+    console.log('updateWhiteboardLayout container dimensions:', {
+        clientWidth: canvasContainer.clientWidth,
+        clientHeight: canvasContainer.clientHeight,
+        offsetWidth: canvasContainer.offsetWidth,
+        offsetHeight: canvasContainer.offsetHeight
+    });
+
     const containerWidth = canvasContainer.clientWidth;
     const containerHeight = canvasContainer.clientHeight;
+
+    console.log('Available container space:', {containerWidth, containerHeight});
 
     // Calculate maximum possible dimensions with 1:1 aspect ratio
     const aspectRatio = 1; // Force 1:1 ratio
     const maxWidth = Math.min(containerWidth, containerHeight * aspectRatio);
     const maxHeight = Math.min(containerHeight, containerWidth / aspectRatio);
+    
+    console.log('Calculated maximum dimensions:', {maxWidth, maxHeight});
 
     // Set initial dimensions if not already set
     if (!currentWhiteboardDrawingWidth || !currentWhiteboardDrawingHeight) {
