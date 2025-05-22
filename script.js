@@ -10,6 +10,8 @@ let positionLocation, texCoordLocation;
 let matrixLocation, resolutionLocation;
 let currentPerspectiveMatrix = null; // To store the calculated perspective matrix
 let currentSrcPoints = null; // To store the source points for logging
+let positionBuffer = null; // WebGL buffer for vertex positions
+let texCoordBuffer = null; // WebGL buffer for texture coordinates
 
 // Global variable to control initial phase ('setup' or 'whiteboard')
 // Set to 'whiteboard' for debugging purposes as requested.
@@ -161,8 +163,15 @@ function updatePerspectiveMatrix() {
     if (videoWidth && videoHeight && trapezoidPoints && trapezoidPoints.length === 4) {
         hasLoggedPerspectiveInfo = false; // Reset log flag so it logs for the new matrix
         const transformData = calculatePerspectiveMatrix();
-        currentPerspectiveMatrix = transformData.matrix;
-        currentSrcPoints = transformData.srcPoints; // Store srcPoints for logging
+        if (transformData && transformData.matrix) {
+            currentPerspectiveMatrix = transformData.matrix;
+            currentSrcPoints = transformData.srcPoints; // Store srcPoints for logging
+        } else {
+            console.error("Failed to calculate perspective matrix. Using identity matrix.");
+            currentPerspectiveMatrix = [1,0,0, 0,1,0, 0,0,1]; // Fallback to identity
+            // Attempt to use original trapezoid points if available, otherwise empty
+            currentSrcPoints = trapezoidPoints ? trapezoidPoints.map(point => [point[0] / videoWidth, point[1] / videoHeight]) : [];
+        }
     } else {
         // Not enough data to calculate, set to identity (no transformation)
         currentPerspectiveMatrix = [1,0,0, 0,1,0, 0,0,1];
@@ -265,11 +274,16 @@ function initWebGL() {
     matrixLocation = gl.getUniformLocation(program, 'u_matrix');
     
     // Create buffers
-    const positionBuffer = gl.createBuffer();
+    positionBuffer = gl.createBuffer(); // Use global variable
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    setRectangle(gl, 0, 0, videoWidth, videoHeight);
+    // Use whiteboardCanvas dimensions for the rectangle, which should match videoWidth/Height
+    setRectangle(gl, 0, 0, whiteboardCanvas.width, whiteboardCanvas.height); 
     
-    const texCoordBuffer = gl.createBuffer();
+    // Enable and point position attribute
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+    texCoordBuffer = gl.createBuffer(); // Use global variable
     gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
         0.0, 0.0,
@@ -279,6 +293,10 @@ function initWebGL() {
         1.0, 0.0,
         1.0, 1.0
     ]), gl.STATIC_DRAW);
+
+    // Enable and point texCoord attribute
+    gl.enableVertexAttribArray(texCoordLocation);
+    gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
     
     // Create texture
     const texture = gl.createTexture();
@@ -341,46 +359,27 @@ function setRectangle(gl, x, y, width, height) {
 
 // Process video frame with perspective correction
 function processVideoFrame() {
-    if (!gl) return;
+    if (!gl || !isWebGLInitialized) return; // Ensure WebGL is ready
     
     // Tell WebGL how to convert from clip space to pixels
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     
     // Clear the canvas
-    gl.clearColor(1, 1, 1, 1);
+    gl.clearColor(1, 1, 1, 1); // White background for whiteboard
     gl.clear(gl.COLOR_BUFFER_BIT);
     
     // Tell it to use our program (pair of shaders)
     gl.useProgram(program);
     
-    // Turn on the position attribute
-    gl.enableVertexAttribArray(positionLocation);
+    // Buffers and attributes are already set up in initWebGL.
+    // We just need to ensure the correct buffers are active if we were using multiple,
+    // but here, positionBuffer and texCoordBuffer are the only ones for these attributes.
+    // gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); // Not strictly needed if no other buffer was bound
+    // gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0); // Already configured
+    // gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer); // Not strictly needed
+    // gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0); // Already configured
     
-    // Bind the position buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    setRectangle(gl, 0, 0, videoWidth, videoHeight);
-    
-    // Tell the position attribute how to get data out of positionBuffer
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-    
-    // Turn on the texCoord attribute
-    gl.enableVertexAttribArray(texCoordLocation);
-    
-    // Bind the texCoord buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-        0.0, 0.0,
-        1.0, 0.0,
-        0.0, 1.0,
-        0.0, 1.0,
-        1.0, 0.0,
-        1.0, 1.0
-    ]), gl.STATIC_DRAW);
-    
-    // Tell the texCoord attribute how to get data out of texCoordBuffer
-    gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
-    
-    // Set the resolution
+    // Set the resolution (still needed if canvas can resize, or for shader logic)
     gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
     
     // Use the pre-calculated perspective transformation matrix
@@ -392,20 +391,11 @@ function processVideoFrame() {
         currentPerspectiveMatrix = [1,0,0, 0,1,0, 0,0,1];
     }
     const matrix = currentPerspectiveMatrix;
-    // srcPointsForLogging is now implicitly handled by the logging within calculatePerspectiveMatrix,
-    // which is called by updatePerspectiveMatrix. If logging needs specific srcPoints here,
-    // they would need to be stored alongside currentPerspectiveMatrix.
 
-    // The 'matrix' (currentPerspectiveMatrix) is row-major.
-    // For gl.uniformMatrix3fv with transpose = false, we need column-major.
-    const matrixTransposed = [
-        matrix[0], matrix[3], matrix[6], // Column 0
-        matrix[1], matrix[4], matrix[7], // Column 1
-        matrix[2], matrix[5], matrix[8]  // Column 2
-    ];
-
-    // Set the matrix uniform. Now 'false' for transpose because matrixTransposed is column-major.
-    gl.uniformMatrix3fv(matrixLocation, false, matrixTransposed);
+    // Set the matrix uniform.
+    // currentPerspectiveMatrix is row-major.
+    // Send it to GL and ask GL to transpose it.
+    gl.uniformMatrix3fv(matrixLocation, true, matrix);
 
     // --- Verification Logging (runs only once) ---
     // Logging uses the original row-major 'matrix' for consistency with manual calculation.
@@ -486,15 +476,71 @@ function processVideoFrame() {
     triangleAngle += 0.05; // Keep angle updating if triangle is re-enabled later
 }
 
+// Helper function to solve a linear system Ax = b using Gauss-Jordan elimination
+// A is an N x N matrix (array of arrays), b is an N x 1 vector (array)
+// Returns solution vector x, or null if matrix is singular or system is inconsistent
+function solveLinearSystem(A_orig, b_orig) {
+    const N = A_orig.length;
+    if (N === 0 || A_orig[0].length !== N || b_orig.length !== N) {
+        console.error("Invalid input to solveLinearSystem.");
+        return null;
+    }
+
+    // Create augmented matrix [A|b] and clone A_orig, b_orig to avoid modifying them
+    const A = A_orig.map(row => [...row]);
+    const b = [...b_orig];
+
+    for (let i = 0; i < N; i++) {
+        // Pivot selection: find row with max absolute value in current column i, below current row i
+        let maxRow = i;
+        for (let k = i + 1; k < N; k++) {
+            if (Math.abs(A[k][i]) > Math.abs(A[maxRow][i])) {
+                maxRow = k;
+            }
+        }
+
+        // Swap rows in A and b
+        [A[i], A[maxRow]] = [A[maxRow], A[i]];
+        [b[i], b[maxRow]] = [b[maxRow], b[i]];
+
+        // Check for singularity
+        if (Math.abs(A[i][i]) < 1e-10) { // Epsilon for near-zero pivot
+            console.warn("Singular matrix or near-zero pivot encountered in Gauss-Jordan elimination.");
+            return null; 
+        }
+
+        // Normalize pivot row: divide by pivot A[i][i]
+        // This makes A[i][i] = 1
+        const pivotVal = A[i][i];
+        for (let j = i; j < N; j++) {
+            A[i][j] /= pivotVal;
+        }
+        b[i] /= pivotVal;
+
+        // Eliminate other rows
+        for (let k = 0; k < N; k++) {
+            if (k !== i) {
+                const factor = A[k][i];
+                for (let j = i; j < N; j++) {
+                    A[k][j] -= factor * A[i][j];
+                }
+                b[k] -= factor * b[i];
+            }
+        }
+    }
+    // After Gauss-Jordan, A should be identity matrix, and b will contain the solution vector x
+    return b; 
+}
+
 // Calculate perspective transformation matrix
 function calculatePerspectiveMatrix() {
-    // Source points (trapezoid corners in normalized coordinates)
-    const srcPoints = trapezoidPoints.map(point => [
+    // Source points (trapezoid corners in normalized video coordinates)
+    const currentSrcPointsNorm = trapezoidPoints.map(point => [
         point[0] / videoWidth,
         point[1] / videoHeight
     ]);
     
-    // Destination points (rectangle corners in normalized coordinates)
+    // Destination points (output canvas corners, normalized)
     // The goal is to map the paper's actual orientation to the output canvas correctly:
     // - Paper's Top-Left (PTL) should map to Output Top-Left [0,0]
     // - Paper's Top-Right (PTR) should map to Output Top-Right [1,0]
@@ -507,146 +553,48 @@ function calculatePerspectiveMatrix() {
     // trapezoidPoints[2] (Trapezoid's Top-Right) is Paper's Bottom-Left (PBL)
     // trapezoidPoints[3] (Trapezoid's Top-Left) is Paper's Bottom-Right (PBR)
 
-    // Therefore, dstPoints (which maps 1:1 with srcPoints derived from trapezoidPoints) should be:
+    // Therefore, dstPoints (which maps 1:1 with currentSrcPointsNorm) should be:
     const dstPoints = [
-        [1, 0],  // srcPoints[0] (PTR) maps to Output Top-Right
-        [0, 0],  // srcPoints[1] (PTL) maps to Output Top-Left
-        [0, 1],  // srcPoints[2] (PBL) maps to Output Bottom-Left
-        [1, 1]   // srcPoints[3] (PBR) maps to Output Bottom-Right
+        [1, 0],  // currentSrcPointsNorm[0] (Paper's Top-Right) maps to Output Top-Right
+        [0, 0],  // currentSrcPointsNorm[1] (Paper's Top-Left) maps to Output Top-Left
+        [0, 1],  // currentSrcPointsNorm[2] (Paper's Bottom-Left) maps to Output Bottom-Left
+        [1, 1]   // currentSrcPointsNorm[3] (Paper's Bottom-Right) maps to Output Bottom-Right
     ];
     
-    // Calculate homography matrix (perspective transformation)
-    // Implementation of the Direct Linear Transform algorithm
+    // --- DLT Solver using Gaussian Elimination ---
+    // We want to find matrix H such that for each correspondence (x_dst, y_dst) <-> (x_src, y_src):
+    // x_src = (h00*x_dst + h01*y_dst + h02) / (h20*x_dst + h21*y_dst + h22)
+    // y_src = (h10*x_dst + h11*y_dst + h12) / (h20*x_dst + h21*y_dst + h22)
+    // Setting h22 = 1 (h[8]=1), we get a linear system for the first 8 elements of H.
+    // Each point correspondence gives two rows in an 8x8 matrix M for M*h_prime = v
     
-    // Create the coefficient matrix for the system of equations
-    const A = [];
+    const M = []; // This will be the 8x8 matrix
+    const v = []; // This will be the 8x1 vector
     
     for (let i = 0; i < 4; i++) {
-        // To compute H_dst_to_src (map output canvas points to source video points):
-        // - The "source" points for this transformation are dstPoints (e.g., [0,0], [1,0] on canvas).
-        // - The "destination" points for this transformation are srcPoints (trapezoid points on video).
-        const [x, y] = dstPoints[i]; // Point from the output canvas rectangle
-        const [X, Y] = srcPoints[i]; // Corresponding point from the source video trapezoid
+        const x_dst = dstPoints[i][0];
+        const y_dst = dstPoints[i][1];
+        const x_src = currentSrcPointsNorm[i][0];
+        const y_src = currentSrcPointsNorm[i][1];
         
-        // Each point correspondence gives two equations
-        A.push([
-            x, y, 1, 0, 0, 0, -X*x, -X*y, -X
-        ]);
+        M.push([x_dst, y_dst, 1, 0,     0,     0, -x_src * x_dst, -x_src * y_dst]);
+        v.push(x_src);
         
-        A.push([
-            0, 0, 0, x, y, 1, -Y*x, -Y*y, -Y
-        ]);
-    }
-    
-    // Solve the system using Singular Value Decomposition (SVD)
-    // For simplicity, we'll use a numerical approximation method
-    // In a production app, you would use a proper linear algebra library
-    
-    // Compute A^T * A (approximation of the SVD)
-    const AtA = [];
-    for (let i = 0; i < 9; i++) {
-        AtA[i] = [];
-        for (let j = 0; j < 9; j++) {
-            let sum = 0;
-            for (let k = 0; k < 8; k++) {
-                sum += A[k][i] * A[k][j];
-            }
-            AtA[i][j] = sum;
-        }
-    }
-    
-    // Find the eigenvector corresponding to the smallest eigenvalue
-    // The following "new solver" section implements a more robust method.
-    
-    // Normalize the vector (used by the solver below)
-    const normalize = (v) => {
-        const magnitude = Math.sqrt(v.reduce((sum, val) => sum + val * val, 0));
-        return v.map(val => val / magnitude);
-    };
-    
-    // --- Start of new solver for Ah=0 using eigenvalue method for smallest eigenvalue ---
-
-    // Helper for matrix (9x9) * vector (9x1) multiplication
-    const matVecMult = (matrix, vector) => {
-        const result = Array(9).fill(0);
-        for (let i = 0; i < 9; i++) {
-            for (let j = 0; j < 9; j++) {
-                result[i] += matrix[i][j] * vector[j];
-            }
-        }
-        return result;
-    };
-
-    // Helper to get L2 norm (magnitude) of a vector
-    const vecNorm = (v) => Math.sqrt(v.reduce((sum, val) => sum + val * val, 0));
-
-    // The normalize function is already defined in this scope from the earlier part of the function.
-    // const normalize = (v) => { ... };
-
-    // 1. Estimate lambda_max (largest eigenvalue) of AtA and its eigenvector h_large.
-    //    AtA is symmetric, so its eigenvalues are real.
-    let h_large = Array(9).fill(1.0 / Math.sqrt(9)); // Initial normalized guess for eigenvector
-    let lambda_max = 0;
-    const K_power_iter = 50; // Increased iterations for lambda_max estimation (was 20)
-
-    for (let iter = 0; iter < K_power_iter; iter++) {
-        const AtA_h_large = matVecMult(AtA, h_large);
-        lambda_max = vecNorm(AtA_h_large); // Eigenvalue is the norm after multiplication if h_large is normalized
-        
-        if (lambda_max === 0) {
-             console.error("lambda_max is zero during power iteration. AtA might be zero or h_large became zero. Fallback to identity.");
-             return { matrix: [1,0,0, 0,1,0, 0,0,1], srcPoints: srcPoints };
-        }
-        h_large = AtA_h_large.map(val => val / lambda_max); // Normalize for next iteration
-    }
-    // h_large is now the eigenvector for lambda_max. lambda_max is the largest eigenvalue.
-
-    // 2. Form matrix B = lambda_max * I - AtA.
-    //    The largest eigenvalue of B corresponds to the smallest eigenvalue of AtA.
-    const B = Array(9).fill(null).map(() => Array(9).fill(0));
-    for (let i = 0; i < 9; i++) {
-        for (let j = 0; j < 9; j++) {
-            B[i][j] = (i === j ? lambda_max : 0) - AtA[i][j];
-        }
+        M.push([0,     0,     0, x_dst, y_dst, 1, -y_src * x_dst, -y_src * y_dst]);
+        v.push(y_src);
     }
 
-    // 3. Find h (eigenvector of AtA for smallest eigenvalue) using power iteration on B.
-    //    This h will be the eigenvector of B for its largest eigenvalue.
-    let h = Array(9).fill(1.0 / Math.sqrt(9)); // Initial normalized guess
-    const K_inverse_power_iter = 50; // Increased iterations (was 20)
+    const h_prime = solveLinearSystem(M, v);
 
-    for (let iter = 0; iter < K_inverse_power_iter; iter++) {
-        const B_h = matVecMult(B, h);
-        const norm_B_h = vecNorm(B_h); // This is the largest eigenvalue of B
-        
-        if (norm_B_h === 0) {
-            console.error("Norm of B_h is zero. This implies h is in the null space of B (e.g. AtA has multiple eigenvalues equal to lambda_max or other numerical issues). Fallback to identity.");
-            // This can also happen if lambda_max was the only non-zero eigenvalue, making B mostly zero.
-            return { matrix: [1,0,0, 0,1,0, 0,0,1], srcPoints: srcPoints };
-        }
-        h = B_h.map(val => val / norm_B_h); // Normalize for next iteration
+    if (!h_prime) {
+        console.error("DLT solver failed (solveLinearSystem returned null).");
+        return { matrix: null, srcPoints: currentSrcPointsNorm }; // Indicate failure
     }
-    // h is now the eigenvector of AtA corresponding to its smallest eigenvalue.
 
-    // Normalize h such that h[8] (the H_22 element) is 1.
-    // This is a common practice for homography matrices and can improve stability.
-    // Only do this if h[8] is not excessively small to avoid division by near-zero.
-    if (Math.abs(h[8]) > 1e-8) { // Threshold to prevent division by very small h[8]
-        const scale = 1.0 / h[8];
-        for (let i = 0; i < 9; i++) {
-            h[i] *= scale;
-        }
-    } else {
-        // If h[8] is very small, the matrix represents a projection where the plane
-        // containing the destination points maps to a plane through the camera's center of projection
-        // (affine camera model, or mapping to points at infinity).
-        // In such cases, ||h||=1 normalization (which is already done by the solver) is often preferred.
-        // We can log this situation.
-        console.warn("h[8] is very small (" + h[8] + "). Perspective matrix might be unusual. Retaining ||h||=1 normalization.");
-    }
-    // --- End of new solver ---
+    // Full homography vector h (h22 = 1)
+    const h = [...h_prime, 1.0];
     
-    // Reshape h into a 3x3 matrix
+    // Reshape h into a 3x3 matrix (row-major)
     const perspectiveMatrix = [
         h[0], h[1], h[2],
         h[3], h[4], h[5],
@@ -655,6 +603,64 @@ function calculatePerspectiveMatrix() {
     
     return { matrix: perspectiveMatrix, srcPoints: srcPoints };
 }
+
+
+// Helper function to solve a linear system Ax = b using Gauss-Jordan elimination
+// A is an N x N matrix (array of arrays), b is an N x 1 vector (array)
+// Returns solution vector x, or null if matrix is singular or system is inconsistent
+function solveLinearSystem(A_orig, b_orig) {
+    const N = A_orig.length;
+    if (N === 0 || A_orig[0].length !== N || b_orig.length !== N) {
+        console.error("Invalid input to solveLinearSystem.");
+        return null;
+    }
+
+    // Create augmented matrix [A|b] and clone A_orig, b_orig to avoid modifying them
+    const A = A_orig.map(row => [...row]);
+    const b = [...b_orig];
+
+    for (let i = 0; i < N; i++) {
+        // Pivot selection: find row with max absolute value in current column i, below current row i
+        let maxRow = i;
+        for (let k = i + 1; k < N; k++) {
+            if (Math.abs(A[k][i]) > Math.abs(A[maxRow][i])) {
+                maxRow = k;
+            }
+        }
+
+        // Swap rows in A and b
+        [A[i], A[maxRow]] = [A[maxRow], A[i]];
+        [b[i], b[maxRow]] = [b[maxRow], b[i]];
+
+        // Check for singularity
+        if (Math.abs(A[i][i]) < 1e-10) { // Epsilon for near-zero pivot
+            console.warn("Singular matrix or near-zero pivot encountered in Gauss-Jordan elimination.");
+            return null; 
+        }
+
+        // Normalize pivot row: divide by pivot A[i][i]
+        // This makes A[i][i] = 1
+        const pivotVal = A[i][i];
+        for (let j = i; j < N; j++) {
+            A[i][j] /= pivotVal;
+        }
+        b[i] /= pivotVal;
+
+        // Eliminate other rows
+        for (let k = 0; k < N; k++) {
+            if (k !== i) {
+                const factor = A[k][i];
+                for (let j = i; j < N; j++) {
+                    A[k][j] -= factor * A[i][j];
+                }
+                b[k] -= factor * b[i];
+            }
+        }
+    }
+    // After Gauss-Jordan, A should be identity matrix, and b will contain the solution vector x
+    return b; 
+}
+
 
 // Switch to whiteboard mode
 function startWhiteboardMode() {
@@ -794,88 +800,11 @@ function handleZoomSlider() {
     calculateTrapezoidPoints(zoomFactor);
 }
 
-// Switch back to setup mode
-function backToSetupMode() {
-    // Animate transition
-    const setupView = document.getElementById('setup-view');
-    const whiteboardView = document.getElementById('whiteboard-view');
-    
-    whiteboardView.style.opacity = '1';
-    setupView.style.display = 'flex';
-    setupView.style.opacity = '0';
-    
-    // Fade out whiteboard view
-    let opacity = 1;
-    const fadeOut = setInterval(() => {
-        opacity -= 0.1;
-        whiteboardView.style.opacity = opacity;
-        
-        if (opacity <= 0) {
-            clearInterval(fadeOut);
-            whiteboardView.style.display = 'none';
-            
-            // Fade in setup view
-            let setupOpacity = 0;
-            const fadeIn = setInterval(() => {
-                setupOpacity += 0.1;
-                setupView.style.opacity = setupOpacity;
-                
-                if (setupOpacity >= 1) {
-                    clearInterval(fadeIn);
-                    setupView.classList.add('active');
-                }
-            }, 30);
-        }
-    }, 30);
-    
-    isWhiteboardMode = false;
-}
-
-// Capture and process the current frame
-function captureAndProcessFrame() {
-    // Create a temporary canvas to capture the current frame
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = videoWidth;
-    tempCanvas.height = videoHeight;
-    const tempCtx = tempCanvas.getContext('2d');
-    
-    // Draw the current video frame to the temporary canvas
-    tempCtx.drawImage(webcam, 0, 0, videoWidth, videoHeight);
-    
-    // Use the captured frame for perspective correction
-    const imageData = tempCtx.getImageData(0, 0, videoWidth, videoHeight);
-    
-    // Update the texture with the captured frame
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tempCanvas);
-}
-
-// Clear the whiteboard
-function clearWhiteboard() {
-    whiteboardCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
-}
-
-// Save the whiteboard as an image
-function saveWhiteboard() {
-    const link = document.createElement('a');
-    link.download = 'whiteboard-' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.png';
-    link.href = whiteboardCanvas.toDataURL();
-    link.click();
-}
-
-// Adjust zoom level
-function adjustZoom(delta) {
-    const slider = document.getElementById('zoom-slider');
-    slider.value = parseInt(slider.value) + delta;
-    handleZoomSlider();
-}
-
-// Handle zoom slider changes
-function handleZoomSlider() {
-    const zoomValue = document.getElementById('zoom-slider').value;
-    // Convert zoomValue (1-100) to a zoomFactor (e.g., 0.5 to 2.0)
-    // 50 is no zoom (factor 1.0)
-    const zoomFactor = zoomValue / 50;
-
-    // Recalculate trapezoid points with the new zoom factor, keeping the bottom anchored
-    calculateTrapezoidPoints(zoomFactor);
-}
+// Note: The following functions were duplicated and have been removed:
+// backToSetupMode, captureAndProcessFrame, clearWhiteboard (old 2D version), 
+// saveWhiteboard (if it was different), adjustZoom, handleZoomSlider.
+// Ensure the primary versions of these functions are correct and in their logical place.
+// The primary backToSetupMode is around line 701.
+// The primary clearWhiteboard (WebGL version) is around line 747.
+// The primary saveWhiteboard is around line 760.
+// The primary adjustZoom and handleZoomSlider are around line 767 and 774.
