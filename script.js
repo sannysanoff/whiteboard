@@ -14,8 +14,9 @@ let positionBuffer = null; // WebGL buffer for vertex positions
 let texCoordBuffer = null; // WebGL buffer for texture coordinates
 
 // Variables for draggable trapezoid corners
-let draggedCornerIndex = -1; // Index of the trapezoidPoints being dragged, or -1 if none
-const HANDLE_RADIUS = 15; // Radius of the draggable handles in pixels
+let htmlHandles = []; // To store the DOM elements for handles
+let draggedHtmlHandle = null; // The HTML handle element being dragged
+const HANDLE_SIZE = 20; // Pixel dimension of the square HTML handle (matches CSS)
 
 // Global variable to control initial phase ('setup' or 'whiteboard')
 // Set to 'whiteboard' for debugging purposes as requested.
@@ -61,12 +62,24 @@ document.addEventListener('DOMContentLoaded', () => {
     overlayCanvas.addEventListener('mousedown', handleTrapezoidInteractionStart);
     document.addEventListener('mousemove', handleTrapezoidInteractionMove);
     document.addEventListener('mouseup', handleTrapezoidInteractionEnd);
-    overlayCanvas.addEventListener('touchstart', handleTrapezoidInteractionStart, { passive: false });
+    // Touch events for document are for moving/ending drag
     document.addEventListener('touchmove', handleTrapezoidInteractionMove, { passive: false });
     document.addEventListener('touchend', handleTrapezoidInteractionEnd);
+
+    // Get HTML handles
+    for (let i = 0; i < 4; i++) {
+        const handle = document.getElementById(`handle-${i}`);
+        htmlHandles.push(handle);
+        // Attach mousedown/touchstart to each handle
+        handle.addEventListener('mousedown', handleTrapezoidInteractionStart);
+        handle.addEventListener('touchstart', handleTrapezoidInteractionStart, { passive: false });
+    }
     
     // Initialize webcam
     initWebcam();
+
+    // Add resize listener to update handle positions
+    window.addEventListener('resize', updateHtmlHandlesPositions);
 
     // Handle initial phase display based on the global variable
     if (initialPhase === 'whiteboard') {
@@ -104,7 +117,7 @@ async function initWebcam() {
             whiteboardCanvas.height = videoHeight;
             
             // Calculate trapezoid points based on video dimensions
-            calculateTrapezoidPoints();
+            calculateTrapezoidPoints(); // This will also call updateHtmlHandlesPositions
             updatePerspectiveMatrix(); // Initial calculation of the perspective matrix
             
             // Start drawing loop
@@ -168,6 +181,32 @@ function calculateTrapezoidPoints(zoomFactor = 1.0) {
 
     // Update the perspective matrix whenever trapezoid points change
     updatePerspectiveMatrix();
+    // Update HTML handle positions
+    updateHtmlHandlesPositions();
+}
+
+// Update positions of HTML handles based on trapezoidPoints
+function updateHtmlHandlesPositions() {
+    if (!videoWidth || !videoHeight || htmlHandles.length === 0) return;
+
+    const cameraContainer = document.getElementById('camera-container');
+    if (!cameraContainer) return;
+    const containerRect = cameraContainer.getBoundingClientRect();
+
+    for (let i = 0; i < trapezoidPoints.length; i++) {
+        const canvasP = trapezoidPoints[i];
+        const handleEl = htmlHandles[i];
+
+        if (handleEl) {
+            // Convert canvas coordinates to CSS pixel values relative to the container
+            const cssX = (canvasP[0] / videoWidth) * containerRect.width;
+            const cssY = (canvasP[1] / videoHeight) * containerRect.height;
+            
+            // Apply transform for centering, already in CSS, so just set left/top
+            handleEl.style.left = `${cssX}px`;
+            handleEl.style.top = `${cssY}px`;
+        }
+    }
 }
 
 // Recalculate and update the perspective matrix
@@ -244,21 +283,17 @@ function drawTrapezoid() {
     overlayCtx.lineWidth = 3;
     overlayCtx.stroke();
 
-    // Draw draggable handles at each corner
-    if (!isWhiteboardMode) { // Only draw handles in setup mode
-        overlayCtx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-        overlayCtx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-        overlayCtx.lineWidth = 1;
-        trapezoidPoints.forEach(point => {
-            overlayCtx.beginPath();
-            overlayCtx.arc(point[0], point[1], HANDLE_RADIUS, 0, 2 * Math.PI);
-            overlayCtx.fill();
-            overlayCtx.stroke();
-        });
-    }
+    // HTML handles are now used, so no need to draw them on canvas.
+    // Show/hide HTML handles based on mode
+    const displayStyle = isWhiteboardMode ? 'none' : 'block';
+    htmlHandles.forEach(handle => {
+        if (handle) handle.style.display = displayStyle;
+    });
 }
 
 // Helper function to get event coordinates relative to the canvas
+// This function is kept as it might be useful for other interactions with overlayCanvas,
+// but it's not used for the HTML handle dragging.
 function getCanvasCoordinates(event, canvas) {
     const rect = canvas.getBoundingClientRect();
     let clientX, clientY;
@@ -284,42 +319,70 @@ function getCanvasCoordinates(event, canvas) {
     };
 }
 
-// Event handlers for trapezoid corner dragging
+// Event handlers for trapezoid corner dragging (now with HTML elements)
 function handleTrapezoidInteractionStart(event) {
     if (isWhiteboardMode) return; // Interaction only in setup mode
 
-    const pos = getCanvasCoordinates(event, overlayCanvas);
+    // 'this' refers to the HTML handle element the event was triggered on
+    draggedHtmlHandle = this;
     
-    for (let i = 0; i < trapezoidPoints.length; i++) {
-        const corner = trapezoidPoints[i];
-        const dx = pos.x - corner[0];
-        const dy = pos.y - corner[1];
-        if (dx * dx + dy * dy < HANDLE_RADIUS * HANDLE_RADIUS) {
-            draggedCornerIndex = i;
-            if (event.type === 'touchstart') event.preventDefault(); // Prevent scrolling/zooming
-            return;
-        }
+    // Add grabbing cursor style to body to indicate drag, and prevent text selection
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+
+    if (event.type === 'touchstart') {
+        event.preventDefault(); // Prevent scrolling/zooming
     }
 }
 
 function handleTrapezoidInteractionMove(event) {
-    if (draggedCornerIndex === -1 || isWhiteboardMode) return;
+    if (!draggedHtmlHandle || isWhiteboardMode) return;
 
-    const pos = getCanvasCoordinates(event, overlayCanvas);
-    
-    // Update the position of the dragged corner, clamping to canvas bounds
-    trapezoidPoints[draggedCornerIndex][0] = Math.max(0, Math.min(pos.x, videoWidth));
-    trapezoidPoints[draggedCornerIndex][1] = Math.max(0, Math.min(pos.y, videoHeight));
-    
-    updatePerspectiveMatrix(); // Recalculate matrix as points have changed
-    // The drawLoop will handle redrawing the trapezoid and handles
+    if (event.type === 'touchmove' || event.type === 'mousemove') {
+        event.preventDefault(); // Prevent scrolling/zooming during drag
+    }
 
-    if (event.type === 'touchmove') event.preventDefault(); // Prevent scrolling/zooming
+    const cameraContainer = document.getElementById('camera-container');
+    if (!cameraContainer) return;
+    const containerRect = cameraContainer.getBoundingClientRect();
+
+    // Determine clientX/Y from touch or mouse event
+    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+
+    // Calculate new CSS position for the handle, relative to the camera-container
+    let newCssX = clientX - containerRect.left;
+    let newCssY = clientY - containerRect.top;
+
+    // Update the HTML handle's position (centered)
+    draggedHtmlHandle.style.left = `${newCssX}px`;
+    draggedHtmlHandle.style.top = `${newCssY}px`;
+    
+    // Find the index of the dragged handle
+    const cornerIndex = htmlHandles.indexOf(draggedHtmlHandle);
+    if (cornerIndex === -1) return; // Should not happen
+
+    // Convert the centered CSS position back to canvas coordinates
+    // newCssX and newCssY are already the center of the handle due to transform: translate(-50%, -50%)
+    // So, these directly represent the point on the scaled container.
+    const canvasX = (newCssX / containerRect.width) * videoWidth;
+    const canvasY = (newCssY / containerRect.height) * videoHeight;
+
+    // Update the corresponding trapezoidPoint. No clamping.
+    trapezoidPoints[cornerIndex][0] = canvasX;
+    trapezoidPoints[cornerIndex][1] = canvasY;
+    
+    updatePerspectiveMatrix(); // Recalculate matrix and redraw trapezoid lines
+    // HTML handle positions are already updated.
 }
 
 function handleTrapezoidInteractionEnd(event) {
-    if (draggedCornerIndex === -1) return;
-    draggedCornerIndex = -1;
+    if (!draggedHtmlHandle) return;
+    
+    draggedHtmlHandle = null;
+    // Restore cursor and text selection
+    document.body.style.cursor = 'default';
+    document.body.style.userSelect = 'auto';
 }
 
 
