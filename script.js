@@ -824,7 +824,7 @@ function handleTrapezoidInteractionMove(event) {
                                    sx, sy, sourceSize, sourceSize, 
                                    0, 0, destSize, destSize);
             
-            // Draw trapezoid corners and lines in magnifier coordinates
+            // Draw lines from center to trapezoid corners
             magnifierCtx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
             magnifierCtx.lineWidth = 1;
             magnifierCtx.fillStyle = 'red';
@@ -839,15 +839,17 @@ function handleTrapezoidInteractionMove(event) {
                 magnifierPoints.push([magnifierX, magnifierY]);
             }
             
-            // Draw lines between adjacent trapezoid points (with clipping)
+            // Draw lines from center dot to each trapezoid corner (with clipping)
+            const centerX = destSize / 2;
+            const centerY = destSize / 2;
+            
             magnifierCtx.beginPath();
             for (let i = 0; i < magnifierPoints.length; i++) {
-                const currentPoint = magnifierPoints[i];
-                const nextPoint = magnifierPoints[(i + 1) % magnifierPoints.length];
+                const cornerPoint = magnifierPoints[i];
                 
-                // Clip line to magnifier bounds and draw if any part is visible
-                const clippedLine = clipLineToRect(currentPoint[0], currentPoint[1], 
-                                                 nextPoint[0], nextPoint[1], 
+                // Clip line from center to corner and draw if any part is visible
+                const clippedLine = clipLineToRect(centerX, centerY, 
+                                                 cornerPoint[0], cornerPoint[1], 
                                                  0, 0, destSize, destSize);
                 if (clippedLine) {
                     magnifierCtx.moveTo(clippedLine.x1, clippedLine.y1);
