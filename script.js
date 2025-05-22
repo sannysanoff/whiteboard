@@ -508,9 +508,11 @@ function updateHtmlHandlesPositions() {
             const needleBaseX = needleTipX - Math.sin(angle) * needleLength;
             const needleBaseY = needleTipY - Math.cos(angle) * needleLength;
             
-            // Position the handle element at the base of the needle
-            handleEl.style.left = `${needleBaseX - 8}px`; // 8px = half of handle width
-            handleEl.style.top = `${needleBaseY - 8}px`; // 8px = half of handle height
+            // Position the handle element.
+            // needleBaseX/Y is the coordinate of the needle's pivot point.
+            // The needle pivots at (8px, 0px) local to the handleEl.
+            handleEl.style.left = `${needleBaseX - 8}px`; 
+            handleEl.style.top = `${needleBaseY}px`;
             
             // Position and rotate the needle element
             const needleEl = handleEl.querySelector('.needle');
