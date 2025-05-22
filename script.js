@@ -267,9 +267,22 @@ async function initWebcam(deviceId = null) {
             videoWidth = webcam.videoWidth;
             videoHeight = webcam.videoHeight;
             
-            // Set canvas dimensions to match video
-            overlayCanvas.width = videoWidth;
-            overlayCanvas.height = videoHeight;
+            // Get camera container dimensions
+            const cameraContainer = document.getElementById('camera-container');
+            const containerWidth = cameraContainer.clientWidth;
+            const aspectRatio = videoWidth / videoHeight;
+
+            // Set video display dimensions
+            webcam.style.width = `${containerWidth}px`;
+            webcam.style.height = `${containerWidth / aspectRatio}px`;
+
+            // Set overlay canvas to match displayed video size
+            overlayCanvas.width = containerWidth;
+            overlayCanvas.height = containerWidth / aspectRatio;
+
+            // Update videoWidth/height variables to match displayed size
+            videoWidth = containerWidth;
+            videoHeight = containerWidth / aspectRatio;
             
             // --- Whiteboard Canvas initial drawing surface size ---
             const canvasContainer = document.getElementById('canvas-container');
