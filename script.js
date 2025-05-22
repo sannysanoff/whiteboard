@@ -8,6 +8,7 @@ let isWhiteboardMode = false;
 let gl, program;
 let positionLocation, texCoordLocation;
 let matrixLocation, resolutionLocation;
+let currentPerspectiveMatrix = null; // To store the calculated perspective matrix
 
 // Global variable to control initial phase ('setup' or 'whiteboard')
 // Set to 'whiteboard' for debugging purposes as requested.
@@ -89,6 +90,7 @@ async function initWebcam() {
             
             // Calculate trapezoid points based on video dimensions
             calculateTrapezoidPoints();
+            updatePerspectiveMatrix(); // Initial calculation of the perspective matrix
             
             // Start drawing loop
             requestAnimationFrame(drawLoop);
@@ -148,6 +150,23 @@ function calculateTrapezoidPoints(zoomFactor = 1.0) {
         [topRightX, topY],       // Top-right
         [topLeftX, topY]         // Top-left
     ];
+
+    // Update the perspective matrix whenever trapezoid points change
+    updatePerspectiveMatrix();
+}
+
+// Recalculate and update the perspective matrix
+function updatePerspectiveMatrix() {
+    if (videoWidth && videoHeight && trapezoidPoints && trapezoidPoints.length === 4) {
+        hasLoggedPerspectiveInfo = false; // Reset log flag so it logs for the new matrix
+        const transformData = calculatePerspectiveMatrix();
+        currentPerspectiveMatrix = transformData.matrix;
+        // Note: srcPointsForLogging for external use would be: currentSrcPointsForLogging = transformData.srcPoints;
+    } else {
+        // Not enough data to calculate, set to identity (no transformation)
+        currentPerspectiveMatrix = [1,0,0, 0,1,0, 0,0,1];
+        console.warn("Not enough data for perspective matrix, using identity.");
+    }
 }
 
 // Main drawing loop
@@ -362,12 +381,20 @@ function processVideoFrame() {
     // Set the resolution
     gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
     
-    // Calculate perspective transformation matrix
-    const transformData = calculatePerspectiveMatrix();
-    const matrix = transformData.matrix;
-    const srcPointsForLogging = transformData.srcPoints; // For verification logging
+    // Use the pre-calculated perspective transformation matrix
+    if (!currentPerspectiveMatrix) {
+        console.error("Perspective matrix not available in processVideoFrame.");
+        // Fallback to an identity matrix or skip drawing
+        // For now, using an identity matrix to avoid crashing if this happens.
+        // This should ideally not occur if updatePerspectiveMatrix is called correctly.
+        currentPerspectiveMatrix = [1,0,0, 0,1,0, 0,0,1];
+    }
+    const matrix = currentPerspectiveMatrix;
+    // srcPointsForLogging is now implicitly handled by the logging within calculatePerspectiveMatrix,
+    // which is called by updatePerspectiveMatrix. If logging needs specific srcPoints here,
+    // they would need to be stored alongside currentPerspectiveMatrix.
 
-    // The 'matrix' is currently row-major.
+    // The 'matrix' (currentPerspectiveMatrix) is row-major.
     // For gl.uniformMatrix3fv with transpose = false, we need column-major.
     const matrixTransposed = [
         matrix[0], matrix[3], matrix[6], // Column 0
@@ -558,7 +585,7 @@ function calculatePerspectiveMatrix() {
     //    AtA is symmetric, so its eigenvalues are real.
     let h_large = Array(9).fill(1.0 / Math.sqrt(9)); // Initial normalized guess for eigenvector
     let lambda_max = 0;
-    const K_power_iter = 20; // Number of iterations for lambda_max estimation
+    const K_power_iter = 50; // Increased iterations for lambda_max estimation (was 20)
 
     for (let iter = 0; iter < K_power_iter; iter++) {
         const AtA_h_large = matVecMult(AtA, h_large);
@@ -584,7 +611,7 @@ function calculatePerspectiveMatrix() {
     // 3. Find h (eigenvector of AtA for smallest eigenvalue) using power iteration on B.
     //    This h will be the eigenvector of B for its largest eigenvalue.
     let h = Array(9).fill(1.0 / Math.sqrt(9)); // Initial normalized guess
-    const K_inverse_power_iter = 20; // Number of iterations
+    const K_inverse_power_iter = 50; // Increased iterations (was 20)
 
     for (let iter = 0; iter < K_inverse_power_iter; iter++) {
         const B_h = matVecMult(B, h);
