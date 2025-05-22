@@ -93,13 +93,17 @@ async function initWebcam() {
             // Start drawing loop
             requestAnimationFrame(drawLoop);
             
-            // If starting directly in whiteboard mode, initialize WebGL and capture frame
+            // If starting directly in whiteboard mode, ensure WebGL is initialized after canvas is ready
             if (initialPhase === 'whiteboard') {
                 if (!isWebGLInitialized) {
-                    initWebGL();
-                    isWebGLInitialized = true;
+                    // Defer WebGL initialization to the next animation frame.
+                    // This gives the browser a chance to fully render the canvas with its new dimensions and visibility
+                    // before attempting to get the WebGL context.
+                    requestAnimationFrame(() => {
+                        initWebGL();
+                        isWebGLInitialized = true;
+                    });
                 }
-                // No need for captureAndProcessFrame here, processVideoFrame uses webcam directly
             }
         };
     } catch (error) {
