@@ -150,10 +150,14 @@ h1 {
     transform: translateX(-50%) rotate(-30deg);
 }
 
+#handle-1 .corner-label {
+    transform: translateX(-15px) translateY(-100%); /* Move label left along needle */
+}
+
 #handle-1::after {
     top: 0;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-15px) rotate(30deg); /* Move circle left along needle */
 }
 
 /* Bottom-right corner - tilted right */
@@ -161,10 +165,14 @@ h1 {
     transform: translateX(-50%) rotate(30deg);
 }
 
+#handle-0 .corner-label {
+    transform: translateX(15px) translateY(-100%); /* Move label right along needle */
+}
+
 #handle-0::after {
     top: 0;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(15px) rotate(-30deg); /* Move circle right along needle */
 }
 
 .draggable-handle:active::before {
@@ -187,6 +195,9 @@ h1 {
     padding: 2px 4px;
     border-radius: 3px;
     white-space: nowrap;
+    left: 50%;
+    top: -20px;
+    transform: translateX(-50%); /* Default transform for top handles */
 }
 
 #trapezoid-overlay {

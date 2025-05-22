@@ -495,13 +495,7 @@ function updateHtmlHandlesPositions() {
             handleEl.style.left = `${cssX - 8 + offset.x}px`; // 8px = half of pin width, adjust for needle offset
             handleEl.style.top = `${cssY - offset.y}px`; // Full offset to position needle tip at cssY
             
-            // Position the label above the pin
-            const labelEl = handleEl.querySelector('.corner-label');
-            if (labelEl) {
-                labelEl.style.left = '50%';
-                labelEl.style.top = '-20px';
-                labelEl.style.transform = 'translateX(-50%)';
-            }
+            // Labels are positioned by CSS now, no need for inline styles
         }
     }
 }
