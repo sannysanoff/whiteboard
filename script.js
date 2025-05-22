@@ -1235,8 +1235,8 @@ function startWhiteboardResize(event) {
 
     document.body.style.cursor = 'ew-resize';
     // Make the dragged handle more prominent
-    event.target.style.opacity = '1';
-    event.target.style.backgroundColor = 'rgba(70, 70, 70, 0.8)'; // Active drag color
+    event.target.style.backgroundColor = 'rgba(0, 100, 220, 0.9)'; // Darker, more opaque active blue for drag
+    event.target.style.borderColor = 'rgba(0, 100, 220, 1)';    // Solid border for drag
 }
 
 function doWhiteboardResize(event) {
@@ -1283,14 +1283,14 @@ function stopWhiteboardResize() {
     draggedWhiteboardHandleSide = null;
     document.body.style.cursor = 'default';
 
-    // Reset opacity and background for both handles to their default visible state.
+    // Reset background and border for both handles to their default CSS styles.
     // CSS :hover will take over if mouse is still over one of them.
     if (wbLeftHandle) {
-        wbLeftHandle.style.opacity = ''; // Revert to CSS default
         wbLeftHandle.style.backgroundColor = ''; // Revert to CSS default
+        wbLeftHandle.style.borderColor = '';   // Revert to CSS default
     }
     if (wbRightHandle) {
-        wbRightHandle.style.opacity = ''; // Revert to CSS default
         wbRightHandle.style.backgroundColor = ''; // Revert to CSS default
+        wbRightHandle.style.borderColor = '';   // Revert to CSS default
     }
 }

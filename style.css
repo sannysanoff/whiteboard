@@ -221,20 +221,21 @@ h1 {
 
 .whiteboard-resize-handle {
     position: absolute;
-    width: 12px; /* Slightly wider for easier interaction */
-    height: 60px; /* Slightly taller */
-    background-color: rgba(100, 100, 100, 0.3); /* Default subtle background */
+    width: 8px; /* Thickness of the handle */
+    height: 70px; /* Length of the handle */
+    background-color: rgba(0, 0, 0, 0.05); /* Very subtle, "almost fully away" */
+    border: 1px solid rgba(0, 0, 0, 0.1); /* Slightly more defined border for the rectangle shape */
     cursor: ew-resize;
     z-index: 10; 
-    display: none; /* Initially hidden; JS controls visibility based on mode */
-    border-radius: 4px;
-    opacity: 0.6; /* Default subtle opacity when visible */
-    transition: opacity 0.2s ease-in-out, background-color 0.2s ease-in-out;
+    display: none; /* JS controls visibility based on mode */
+    border-radius: 3px;
+    /* Opacity is handled by RGBA alpha values directly. Transition border-color too. */
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
 
 .whiteboard-resize-handle:hover {
-    background-color: rgba(80, 80, 80, 0.7); /* Darker on hover */
-    opacity: 1; /* Fully opaque on hover */
+    background-color: rgba(0, 122, 255, 0.6); /* Active blue on hover */
+    border-color: rgba(0, 122, 255, 0.8); /* Stronger border for hover */
 }
 
 /* Specific styles if needed for left/right, but positioning is via JS */
