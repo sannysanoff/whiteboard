@@ -39,9 +39,10 @@ h1 {
 
 .flipper-content {
     position: relative;
-    width: 100%;
+    width: 700px;
     height: 400px;
     overflow: hidden;
+    padding-right: 40px;
 }
 
 .flipper-slide {
