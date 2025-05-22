@@ -461,16 +461,20 @@ function calculateTrapezoidPoints(zoomFactor = 1.0) {
 // Define handle angles in radians for each handle
 // The angle determines the direction from the handle's circle (base) towards the trapezoid corner (tip).
 // The needle element itself is rotated by this angle.
+// Labels are swapped diagonally due to upside-down camera view.
 function getHandleAngle(handleIndex) {
     switch(handleIndex) {
-        case 0: // Bottom-Right handle (htmlHandles[0]): needle points left-up towards corner.
-            return -30 * (Math.PI / 180); // -30 degrees
-        case 1: // Bottom-Left handle (htmlHandles[1]): needle points right-up towards corner.
-            return 30 * (Math.PI / 180);  // 30 degrees
-        case 2: // Top-Left handle (htmlHandles[2]): needle points right towards corner.
-            return Math.PI / 2;  // 90 degrees
-        case 3: // Top-Right handle (htmlHandles[3]): needle points left towards corner.
-            return -Math.PI / 2; // -90 degrees
+        // htmlHandles[0] is visually Bottom-Right, but represents paper's Top-Left (UL). Needle points like UL.
+        case 0: return Math.PI / 2;  // 90 degrees (points right, like original UL)
+
+        // htmlHandles[1] is visually Bottom-Left, but represents paper's Top-Right (UR). Needle points like UR.
+        case 1: return -Math.PI / 2; // -90 degrees (points left, like original UR)
+
+        // htmlHandles[2] is visually Top-Left, but represents paper's Bottom-Right (BR). Needle points like BR.
+        case 2: return -30 * (Math.PI / 180); // -30 degrees (points left-up, like original BR)
+
+        // htmlHandles[3] is visually Top-Right, but represents paper's Bottom-Left (BL). Needle points like BL.
+        case 3: return 30 * (Math.PI / 180);  // 30 degrees (points right-up, like original BL)
         default:
             return 0; // Default, should not happen
     }
@@ -526,17 +530,27 @@ function updateHtmlHandlesPositions() {
             // Position the label based on handle type
             const labelEl = handleEl.querySelector('.corner-label');
             if (labelEl) {
-                // Position labels based on handle index (i)
-                if (i === 0) { // Bottom-right (BR) handle
-                    labelEl.style.left = '-25px'; // Adjusted for image: left and up
-                    labelEl.style.top = '-20px';
-                } else if (i === 1) { // Bottom-left (BL) handle
-                    labelEl.style.left = '20px'; // Adjusted for image: right and up
-                    labelEl.style.top = '-20px';
-                } else if (i === 2 || i === 3) { // Top handles (UL, UR)
-                    labelEl.style.left = '0px';   // Centered above
-                    labelEl.style.top = '-25px';  // Slightly more above
+                // Position labels based on visual handle index (i), considering the diagonal swap.
+                // htmlHandles[0] (Visually BR, effectively UL)
+                if (i === 0) { 
+                    labelEl.style.left = '0px';   // Centered above (like original UL/UR)
+                    labelEl.style.top = '-25px';
                     labelEl.style.transform = 'translateX(-50%)';
+                // htmlHandles[1] (Visually BL, effectively UR)
+                } else if (i === 1) { 
+                    labelEl.style.left = '0px';   // Centered above (like original UL/UR)
+                    labelEl.style.top = '-25px';
+                    labelEl.style.transform = 'translateX(-50%)';
+                // htmlHandles[2] (Visually UL, effectively BR)
+                } else if (i === 2) { 
+                    labelEl.style.left = '-25px'; // Left and up (like original BR)
+                    labelEl.style.top = '-20px';
+                    labelEl.style.transform = ''; // Clear transform if not needed
+                // htmlHandles[3] (Visually UR, effectively BL)
+                } else if (i === 3) { 
+                    labelEl.style.left = '20px';  // Right and up (like original BL)
+                    labelEl.style.top = '-20px';
+                    labelEl.style.transform = ''; // Clear transform if not needed
                 }
             }
         }
