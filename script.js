@@ -448,11 +448,15 @@ async function initWebcam(deviceId = null) {
                         requestAnimationFrame(() => {
                             initWebGL();
                             isWebGLInitialized = true;
+                            // Recompute perspective matrix after initial whiteboard setup
+                            updatePerspectiveMatrix();
                             updateWhiteboardLayout(); // Position and style canvas and handles
                         });
                     }, 100);
                 } else {
                     // If WebGL already initialized (e.g., camera change while in whiteboard initialPhase)
+                    // Recompute perspective matrix after aspect ratio changes
+                    updatePerspectiveMatrix();
                     updateWhiteboardLayout(); // Ensure layout and handles are updated
                 }
             }
@@ -1496,9 +1500,15 @@ function startWhiteboardMode() {
                     // Force re-initialization of WebGL with proper size
                     if (gl) {
                         console.log('Updating existing WebGL viewport and rectangle');
-                        gl.viewport(0, 0, containerSize, containerSize);
-                        setRectangle(gl, 0, 0, containerSize, containerSize);
+                        gl.viewport(0, 0, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
+                        gl.useProgram(program);
+                        gl.uniform2f(resolutionLocation, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
+                        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                        setRectangle(gl, 0, 0, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
                     }
+                    
+                    // Recompute perspective matrix after aspect ratio restoration
+                    updatePerspectiveMatrix();
                     
                     updateWhiteboardLayout();
                     if (!isWebGLInitialized) {
