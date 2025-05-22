@@ -511,7 +511,24 @@ function updateHtmlHandlesPositions() {
             // Position the handle element.
             // needleBaseX/Y is the coordinate of the needle's pivot point.
             // The needle pivots at (8px, 0px) local to the handleEl.
-            handleEl.style.left = `${needleBaseX - 8}px`; 
+            
+            let xAdjustment = 0;
+            // i is the htmlHandles index, which corresponds to:
+            // 0: Visual Bottom-Right handle, "UL" label
+            // 1: Visual Bottom-Left handle, "UR" label
+            // 2: Visual Top-Left handle, "BR" label
+            // 3: Visual Top-Right handle, "BL" label
+            if (i === 0) { // Visual Bottom-Right ("UL") - Tip observed slightly too right
+                xAdjustment = -1; // Shift handle left by 1px
+            } else if (i === 1) { // Visual Bottom-Left ("UR") - Tip observed slightly too left
+                xAdjustment = 1;  // Shift handle right by 1px
+            } else if (i === 2) { // Visual Top-Left ("BR") - Tip observed too right
+                xAdjustment = -2; // Shift handle left by 2px
+            } else if (i === 3) { // Visual Top-Right ("BL") - Tip observed too left
+                xAdjustment = 2;  // Shift handle right by 2px
+            }
+
+            handleEl.style.left = `${needleBaseX - 8 + xAdjustment}px`; 
             handleEl.style.top = `${needleBaseY}px`;
             
             // Position and rotate the needle element
