@@ -96,13 +96,15 @@ async function initWebcam() {
             // If starting directly in whiteboard mode, ensure WebGL is initialized after canvas is ready
             if (initialPhase === 'whiteboard') {
                 if (!isWebGLInitialized) {
-                    // Defer WebGL initialization to the next animation frame.
-                    // This gives the browser a chance to fully render the canvas with its new dimensions and visibility
-                    // before attempting to get the WebGL context.
-                    requestAnimationFrame(() => {
-                        initWebGL();
-                        isWebGLInitialized = true;
-                    });
+                    // Defer WebGL initialization with a short timeout.
+                    // This gives the browser more time to fully render the canvas 
+                    // with its new dimensions and visibility before attempting to get the WebGL context.
+                    setTimeout(() => {
+                        requestAnimationFrame(() => { // Still good to sync with rendering cycle
+                            initWebGL();
+                            isWebGLInitialized = true;
+                        });
+                    }, 100); // 100ms delay, can be adjusted
                 }
             }
         };
