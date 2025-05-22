@@ -1644,10 +1644,24 @@ function animateHandlesFlashZoom() {
                 // Remove the class after animation completes
                 setTimeout(() => {
                     handle.classList.remove('handle-flash-zoom');
-                }, 2000);
-            }, index * 150); // 150ms delay between each handle
+                }, 3000); // Updated to match new 3s animation duration
+            }, index * 200); // Increased delay for more dramatic effect
         }
     });
+    
+    // Also animate the whiteboard resize handles
+    if (wbLeftHandle && wbRightHandle) {
+        setTimeout(() => {
+            wbLeftHandle.classList.add('whiteboard-handle-intro');
+            wbRightHandle.classList.add('whiteboard-handle-intro');
+            
+            // Remove the class after animation completes
+            setTimeout(() => {
+                wbLeftHandle.classList.remove('whiteboard-handle-intro');
+                wbRightHandle.classList.remove('whiteboard-handle-intro');
+            }, 2500);
+        }, 800); // Start after the trapezoid handles begin their animation
+    }
 }
 
 // --- Whiteboard Resizing Functions ---

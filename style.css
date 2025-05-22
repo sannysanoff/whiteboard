@@ -135,35 +135,47 @@ h1 {
     0% {
         transform: scale(1);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        background-color: #ff4444;
     }
-    15% {
-        transform: scale(2.5);
-        box-shadow: 0 0 20px rgba(255, 68, 68, 0.8), 0 0 40px rgba(255, 68, 68, 0.4);
+    10% {
+        transform: scale(4);
+        box-shadow: 0 0 40px rgba(0, 122, 255, 1), 0 0 80px rgba(0, 122, 255, 0.6);
+        background-color: #007aff;
     }
-    30% {
-        transform: scale(0.8);
-        box-shadow: 0 0 15px rgba(255, 68, 68, 0.6);
+    25% {
+        transform: scale(2);
+        box-shadow: 0 0 30px rgba(255, 68, 68, 0.9), 0 0 60px rgba(255, 68, 68, 0.5);
+        background-color: #ff4444;
     }
-    50% {
-        transform: scale(1.8);
-        box-shadow: 0 0 25px rgba(255, 68, 68, 0.7), 0 0 50px rgba(255, 68, 68, 0.3);
+    40% {
+        transform: scale(5);
+        box-shadow: 0 0 50px rgba(0, 122, 255, 1), 0 0 100px rgba(0, 122, 255, 0.7);
+        background-color: #007aff;
+    }
+    55% {
+        transform: scale(1.5);
+        box-shadow: 0 0 25px rgba(255, 68, 68, 0.8), 0 0 50px rgba(255, 68, 68, 0.4);
+        background-color: #ff4444;
     }
     70% {
-        transform: scale(0.9);
-        box-shadow: 0 0 10px rgba(255, 68, 68, 0.4);
+        transform: scale(3.5);
+        box-shadow: 0 0 35px rgba(0, 122, 255, 0.9), 0 0 70px rgba(0, 122, 255, 0.5);
+        background-color: #007aff;
     }
     85% {
-        transform: scale(1.2);
-        box-shadow: 0 0 8px rgba(255, 68, 68, 0.3);
+        transform: scale(1.8);
+        box-shadow: 0 0 20px rgba(255, 68, 68, 0.6), 0 0 40px rgba(255, 68, 68, 0.3);
+        background-color: #ff4444;
     }
     100% {
         transform: scale(1);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        background-color: #ff4444;
     }
 }
 
 .handle-flash-zoom .handle-circle {
-    animation: handleFlashZoom 2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    animation: handleFlashZoom 3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 .corner-label {
@@ -323,12 +335,52 @@ h1 {
     display: block; /* make them visible by default */
     border-radius: 3px;
     /* Opacity is handled by RGBA alpha values directly. Transition border-color too. */
-    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, transform 0.3s ease-in-out;
 }
 
 .whiteboard-resize-handle:hover {
     background-color: rgba(0, 122, 255, 0.6); /* Active blue on hover */
     border-color: rgba(0, 122, 255, 0.8); /* Stronger border for hover */
+    transform: scaleX(1.5); /* Slightly expand on hover */
+}
+
+/* Animation for whiteboard resize handles on whiteboard activation */
+@keyframes whiteboardHandleIntro {
+    0% {
+        opacity: 0;
+        transform: scaleX(0.2) scaleY(0.5);
+        background-color: rgba(0, 122, 255, 0.9);
+        border-color: rgba(0, 122, 255, 1);
+        box-shadow: 0 0 20px rgba(0, 122, 255, 0.8);
+    }
+    25% {
+        opacity: 1;
+        transform: scaleX(2) scaleY(1.2);
+        background-color: rgba(0, 122, 255, 0.8);
+        border-color: rgba(0, 122, 255, 1);
+        box-shadow: 0 0 30px rgba(0, 122, 255, 0.9);
+    }
+    50% {
+        transform: scaleX(0.8) scaleY(0.9);
+        background-color: rgba(0, 122, 255, 0.7);
+        box-shadow: 0 0 15px rgba(0, 122, 255, 0.6);
+    }
+    75% {
+        transform: scaleX(1.5) scaleY(1.1);
+        background-color: rgba(0, 122, 255, 0.6);
+        box-shadow: 0 0 25px rgba(0, 122, 255, 0.7);
+    }
+    100% {
+        opacity: 1;
+        transform: scaleX(1) scaleY(1);
+        background-color: rgba(0, 0, 0, 0.05);
+        border-color: rgba(0, 0, 0, 0.1);
+        box-shadow: none;
+    }
+}
+
+.whiteboard-handle-intro {
+    animation: whiteboardHandleIntro 2.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 /* Specific styles if needed for left/right, but positioning is via JS */
