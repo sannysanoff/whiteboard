@@ -744,6 +744,9 @@ function handleTrapezoidInteractionMove(event) {
         const sx = videoFeedX - sourceSize / 2;
         const sy = videoFeedY - sourceSize / 2;
 
+        // Debug log: print coordinates in one line
+        console.log(`Mouse: canvas(${containerX.toFixed(1)},${containerY.toFixed(1)}) webcam(${canvasX.toFixed(1)},${canvasY.toFixed(1)}) | Minimap: canvas(${(sx + sourceSize/2).toFixed(1)},${(sy + sourceSize/2).toFixed(1)}) webcam(${videoFeedX.toFixed(1)},${videoFeedY.toFixed(1)})`);
+
         magnifierCtx.clearRect(0, 0, destSize, destSize);
         magnifierCtx.drawImage(webcam, 
                                sx, sy, sourceSize, sourceSize, 
