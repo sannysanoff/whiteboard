@@ -311,7 +311,6 @@ h1 {
     height: calc(100vh - 60px); /* Account for control bar */
     background-color: #f0f0f0;
     overflow: visible;
-    border: 2px solid red !important; /* Temporary debug border */
 }
 
 #whiteboard-canvas {
@@ -321,7 +320,6 @@ h1 {
     background-color: white;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     transition: width 0.2s ease, height 0.2s ease;
-    border: 2px solid blue !important; /* Temporary debug border */
 }
 
 .whiteboard-resize-handle {
@@ -413,8 +411,27 @@ h1 {
     color: #666;
 }
 
-#clear-btn {
-    color: #ff3b30;
+#copy-btn {
+    color: #007aff;
+}
+
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.toast.show {
+    opacity: 1;
 }
 
 #save-btn {

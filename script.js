@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('start-btn').addEventListener('click', startWhiteboardMode);
     document.getElementById('back-btn').addEventListener('click', backToSetupMode);
-    document.getElementById('clear-btn').addEventListener('click', clearWhiteboard);
+    document.getElementById('copy-btn').addEventListener('click', copyWhiteboardToClipboard);
     document.getElementById('save-btn').addEventListener('click', saveWhiteboard);
     document.getElementById('minus-btn').addEventListener('click', () => adjustZoom(-5));
     document.getElementById('plus-btn').addEventListener('click', () => adjustZoom(5));
@@ -1591,18 +1591,57 @@ function captureAndProcessFrame() {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tempCanvas);
 }
 
-// Clear the whiteboard
-function clearWhiteboard() {
-    // whiteboardCanvas is now a WebGL canvas.
-    // Clearing it means clearing the WebGL drawing buffer.
-    if (gl) {
-        gl.clearColor(1, 1, 1, 1); // Set clear color to white (or any desired color)
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        // Note: If drawLoop is running, this clear will be immediate, 
-        // and the next frame from the camera will be drawn.
-        // For a persistent clear, you might need to stop the video processing loop
-        // or draw a static blank frame.
+// Copy whiteboard to clipboard
+async function copyWhiteboardToClipboard() {
+    try {
+        // Convert canvas to blob
+        const blob = await new Promise(resolve => {
+            whiteboardCanvas.toBlob(resolve, 'image/png');
+        });
+        
+        // Copy to clipboard
+        await navigator.clipboard.write([
+            new ClipboardItem({
+                'image/png': blob
+            })
+        ]);
+        
+        // Show toast notification
+        showToast('Image copied to clipboard!');
+    } catch (error) {
+        console.error('Failed to copy image to clipboard:', error);
+        showToast('Failed to copy image to clipboard');
     }
+}
+
+// Show toast notification
+function showToast(message) {
+    // Remove any existing toast
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Create new toast
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // Show toast with animation
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    // Hide and remove toast after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
 }
 
 // Save the whiteboard as an image
