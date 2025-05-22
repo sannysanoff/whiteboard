@@ -1220,10 +1220,12 @@ function updateWhiteboardLayout() {
     const handleCssHeight = wbLeftHandle.offsetHeight; // Get actual height from CSS/browser
 
     wbLeftHandle.style.top = (wbTop + currentWhiteboardDrawingHeight / 2 - handleCssHeight / 2) + 'px';
-    wbLeftHandle.style.left = (wbLeft - handleCssWidth) + 'px';
+    // Position left handle's left edge at the canvas's left edge
+    wbLeftHandle.style.left = wbLeft + 'px'; 
     
     wbRightHandle.style.top = wbLeftHandle.style.top;
-    wbRightHandle.style.left = (wbLeft + wbWidth) + 'px';
+    // Position right handle's left edge so its right edge is at the canvas's right edge
+    wbRightHandle.style.left = (wbLeft + wbWidth - handleCssWidth) + 'px';
 }
 
 function startWhiteboardResize(event) {
