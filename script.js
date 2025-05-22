@@ -769,21 +769,39 @@ function handleTrapezoidInteractionMove(event) {
             magnifierCtx.fillRect(0, 0, destSize, destSize);
         }
         
-        // Draw crosshair
-        magnifierCtx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
-        magnifierCtx.lineWidth = 1;
-        magnifierCtx.beginPath();
-        magnifierCtx.moveTo(destSize / 2, 0);
-        magnifierCtx.lineTo(destSize / 2, destSize);
-        magnifierCtx.moveTo(0, destSize / 2);
-        magnifierCtx.lineTo(destSize, destSize / 2);
-        magnifierCtx.stroke();
-        
-        // Draw center dot
-        magnifierCtx.fillStyle = 'red';
-        magnifierCtx.beginPath();
-        magnifierCtx.arc(destSize / 2, destSize / 2, 2, 0, 2 * Math.PI);
-        magnifierCtx.fill();
+            // Draw crosshair
+            magnifierCtx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+            magnifierCtx.lineWidth = 1;
+            magnifierCtx.beginPath();
+            magnifierCtx.moveTo(destSize / 2, 0);
+            magnifierCtx.lineTo(destSize / 2, destSize);
+            magnifierCtx.moveTo(0, destSize / 2);
+            magnifierCtx.lineTo(destSize, destSize / 2);
+            magnifierCtx.stroke();
+            
+            // Draw center dot
+            magnifierCtx.fillStyle = 'red';
+            magnifierCtx.beginPath();
+            magnifierCtx.arc(destSize / 2, destSize / 2, 2, 0, 2 * Math.PI);
+            magnifierCtx.fill();
+        } else {
+            // Draw crosshair and center dot even when out of bounds
+            const destSize = 100; // Define destSize for out-of-bounds case
+            magnifierCtx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+            magnifierCtx.lineWidth = 1;
+            magnifierCtx.beginPath();
+            magnifierCtx.moveTo(destSize / 2, 0);
+            magnifierCtx.lineTo(destSize / 2, destSize);
+            magnifierCtx.moveTo(0, destSize / 2);
+            magnifierCtx.lineTo(destSize, destSize / 2);
+            magnifierCtx.stroke();
+            
+            // Draw center dot
+            magnifierCtx.fillStyle = 'red';
+            magnifierCtx.beginPath();
+            magnifierCtx.arc(destSize / 2, destSize / 2, 2, 0, 2 * Math.PI);
+            magnifierCtx.fill();
+        }
     }
 }
 
