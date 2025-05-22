@@ -1,5 +1,6 @@
 // Global variables
 let webcam, overlayCanvas, whiteboardCanvas, cameraSelect;
+let magnifierDiv, magnifierCanvas, magnifierCtx;
 let overlayCtx; // whiteboardCtx removed as whiteboard is WebGL
 let videoWidth, videoHeight;
 let trapezoidPoints = [];
@@ -55,7 +56,15 @@ document.addEventListener('DOMContentLoaded', () => {
     overlayCanvas = document.getElementById('overlay-canvas');
     whiteboardCanvas = document.getElementById('whiteboard-canvas');
     cameraSelect = document.getElementById('camera-select'); // Get camera select element
+    magnifierDiv = document.getElementById('magnifier');
+    magnifierCanvas = document.getElementById('magnifier-canvas');
+    
     overlayCtx = overlayCanvas.getContext('2d');
+    if (magnifierCanvas) { // Ensure it exists before getting context
+        magnifierCtx = magnifierCanvas.getContext('2d');
+        magnifierCanvas.width = 100; // Set drawing surface size
+        magnifierCanvas.height = 100;
+    }
     // whiteboardCtx is no longer initialized here, as whiteboardCanvas will be used for WebGL.
     
     // Set up event listeners
@@ -670,6 +679,11 @@ function handleTrapezoidInteractionStart(event) {
     if (event.type === 'touchstart') {
         event.preventDefault(); // Prevent scrolling/zooming
     }
+
+    if (magnifierDiv) {
+        magnifierDiv.style.display = 'block';
+    }
+    // Initial draw of magnifier content will happen in the first move event
 }
 
 function handleTrapezoidInteractionMove(event) {
@@ -708,7 +722,50 @@ function handleTrapezoidInteractionMove(event) {
     
     // Update matrix and handle positions
     updatePerspectiveMatrix();
-    updateHtmlHandlesPositions();
+    updateHtmlHandlesPositions(); // This updates the draggedHtmlHandle's style.left/top
+
+    // Update Magnifier
+    if (magnifierDiv && magnifierCtx && draggedHtmlHandle && webcam.readyState >= webcam.HAVE_CURRENT_DATA) {
+        // Position the magnifier div
+        // draggedHtmlHandle.style.left and .top are strings like "123.45px"
+        const handleLeft = parseFloat(draggedHtmlHandle.style.left);
+        const handleTop = parseFloat(draggedHtmlHandle.style.top);
+        const handleWidth = draggedHtmlHandle.offsetWidth; // Should be 16px
+        const handleHeight = draggedHtmlHandle.offsetHeight; // Should be 16px
+
+        const magnifierWidth = 100;
+        const magnifierHeight = 100;
+
+        // Center magnifier above the handle's center, with a 20px gap
+        magnifierDiv.style.left = `${handleLeft + (handleWidth / 2) - (magnifierWidth / 2)}px`;
+        magnifierDiv.style.top = `${handleTop + (handleHeight / 2) - magnifierHeight - 20}px`;
+
+        // Draw magnified content
+        // canvasX and canvasY are the center of the handle in video coordinates
+        const videoFeedX = canvasX; // Already in video's intrinsic coordinate system
+        const videoFeedY = canvasY;
+
+        const sourceSize = 50; // 50x50 pixels from video
+        const destSize = 100;  // Drawn as 100x100 on magnifier canvas
+
+        const sx = videoFeedX - sourceSize / 2;
+        const sy = videoFeedY - sourceSize / 2;
+
+        magnifierCtx.clearRect(0, 0, destSize, destSize);
+        magnifierCtx.drawImage(webcam, 
+                               sx, sy, sourceSize, sourceSize, 
+                               0, 0, destSize, destSize);
+        
+        // Draw crosshair
+        magnifierCtx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+        magnifierCtx.lineWidth = 1;
+        magnifierCtx.beginPath();
+        magnifierCtx.moveTo(destSize / 2, 0);
+        magnifierCtx.lineTo(destSize / 2, destSize);
+        magnifierCtx.moveTo(0, destSize / 2);
+        magnifierCtx.lineTo(destSize, destSize / 2);
+        magnifierCtx.stroke();
+    }
 }
 
 function handleTrapezoidInteractionEnd(event) {
@@ -718,6 +775,10 @@ function handleTrapezoidInteractionEnd(event) {
     // Restore cursor and text selection
     document.body.style.cursor = 'default';
     document.body.style.userSelect = 'auto';
+
+    if (magnifierDiv) {
+        magnifierDiv.style.display = 'none';
+    }
 }
 
 
