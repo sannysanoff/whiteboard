@@ -778,6 +778,12 @@ function handleTrapezoidInteractionMove(event) {
         magnifierCtx.moveTo(0, destSize / 2);
         magnifierCtx.lineTo(destSize, destSize / 2);
         magnifierCtx.stroke();
+        
+        // Draw center dot
+        magnifierCtx.fillStyle = 'red';
+        magnifierCtx.beginPath();
+        magnifierCtx.arc(destSize / 2, destSize / 2, 2, 0, 2 * Math.PI);
+        magnifierCtx.fill();
     }
 }
 
