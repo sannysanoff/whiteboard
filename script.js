@@ -13,6 +13,12 @@ let currentSrcPoints = null; // To store the source points for logging
 let positionBuffer = null; // WebGL buffer for vertex positions
 let texCoordBuffer = null; // WebGL buffer for texture coordinates
 
+// Persistent storage keys
+const STORAGE_KEYS = {
+    TRAPEZOID_POINTS: 'whiteboardCamera_trapezoidPoints',
+    WHITEBOARD_ASPECT_RATIO: 'whiteboardCamera_whiteboardAspectRatio'
+};
+
 // Variables for draggable trapezoid corners
 let htmlHandles = []; // To store the DOM elements for handles
 let draggedHtmlHandle = null; // The HTML handle element being dragged
@@ -30,6 +36,32 @@ let isResizingWhiteboard = false;
 let draggedWhiteboardHandleSide = null;
 let currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight;
 let wbResizeInitialMouseX, wbResizeInitialWidth;
+
+// Load whiteboard aspect ratio from localStorage
+function loadWhiteboardAspectRatio() {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEYS.WHITEBOARD_ASPECT_RATIO);
+        if (stored) {
+            const aspectRatio = parseFloat(stored);
+            if (aspectRatio > 0 && aspectRatio < 10) { // Reasonable bounds
+                return aspectRatio;
+            }
+        }
+    } catch (error) {
+        console.warn('Error loading whiteboard aspect ratio from localStorage:', error);
+    }
+    return 1.0; // Default 1:1 aspect ratio
+}
+
+// Save whiteboard aspect ratio to localStorage
+function saveWhiteboardAspectRatio() {
+    try {
+        const aspectRatio = currentWhiteboardDrawingWidth / currentWhiteboardDrawingHeight;
+        localStorage.setItem(STORAGE_KEYS.WHITEBOARD_ASPECT_RATIO, aspectRatio.toString());
+    } catch (error) {
+        console.warn('Error saving whiteboard aspect ratio to localStorage:', error);
+    }
+}
 
 // Global variable for the rotating triangle's angle
 let triangleAngle = 0;
@@ -328,17 +360,29 @@ async function initWebcam(deviceId = null) {
                 offsetHeight: canvasContainer.offsetHeight
             });
             
-            // Use 1:1 aspect ratio for the whiteboard
+            // Load saved aspect ratio or use 1:1 default
+            const savedAspectRatio = loadWhiteboardAspectRatio();
+            console.log('Loaded aspect ratio:', savedAspectRatio);
+            
             // Use offsetWidth/Height instead of clientWidth/Height for more reliable measurements
             const containerSize = Math.min(canvasContainer.offsetWidth, canvasContainer.offsetHeight);
             console.log('Calculated initial whiteboard size:', containerSize);
             
             // Initial values will be properly set when whiteboard becomes visible
+            // Apply saved aspect ratio
             currentWhiteboardDrawingWidth = containerSize;
-            currentWhiteboardDrawingHeight = containerSize;
+            currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
+            
+            // Ensure height doesn't exceed container
+            if (currentWhiteboardDrawingHeight > canvasContainer.offsetHeight) {
+                currentWhiteboardDrawingHeight = canvasContainer.offsetHeight;
+                currentWhiteboardDrawingWidth = currentWhiteboardDrawingHeight * savedAspectRatio;
+            }
+            
             console.log('Set initial whiteboard dimensions:', {
                 width: currentWhiteboardDrawingWidth,
-                height: currentWhiteboardDrawingHeight
+                height: currentWhiteboardDrawingHeight,
+                aspectRatio: currentWhiteboardDrawingWidth / currentWhiteboardDrawingHeight
             });
             whiteboardCanvas.width = currentWhiteboardDrawingWidth;
             whiteboardCanvas.height = currentWhiteboardDrawingHeight;
@@ -431,11 +475,60 @@ let isWebGLInitialized = false;
 // Global flag to ensure perspective info is logged only once
 let hasLoggedPerspectiveInfo = false;
 
+// Load trapezoid points from localStorage
+function loadTrapezoidPoints() {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEYS.TRAPEZOID_POINTS);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            // Validate that we have 4 points with 2 coordinates each
+            if (Array.isArray(parsed) && parsed.length === 4 && 
+                parsed.every(point => Array.isArray(point) && point.length === 2)) {
+                return parsed;
+            }
+        }
+    } catch (error) {
+        console.warn('Error loading trapezoid points from localStorage:', error);
+    }
+    return null;
+}
+
+// Save trapezoid points to localStorage
+function saveTrapezoidPoints() {
+    try {
+        localStorage.setItem(STORAGE_KEYS.TRAPEZOID_POINTS, JSON.stringify(trapezoidPoints));
+    } catch (error) {
+        console.warn('Error saving trapezoid points to localStorage:', error);
+    }
+}
+
 // Calculate trapezoid points based on video dimensions and zoom factor
 function calculateTrapezoidPoints(zoomFactor = 1.0) {
     const width = videoWidth;
     const height = videoHeight;
 
+    // Try to load saved trapezoid points first
+    const savedPoints = loadTrapezoidPoints();
+    if (savedPoints && zoomFactor === 1.0) {
+        // Scale saved points to current video dimensions
+        const savedWidth = savedPoints[1][0] - savedPoints[0][0] + savedPoints[2][0] - savedPoints[3][0];
+        const savedHeight = Math.max(...savedPoints.map(p => p[1])) - Math.min(...savedPoints.map(p => p[1]));
+        
+        if (savedWidth > 0 && savedHeight > 0) {
+            trapezoidPoints = savedPoints.map(point => [
+                (point[0] / savedWidth) * width,
+                (point[1] / savedHeight) * height
+            ]);
+            
+            // Update the perspective matrix whenever trapezoid points change
+            updatePerspectiveMatrix();
+            // Update HTML handle positions
+            updateHtmlHandlesPositions();
+            return;
+        }
+    }
+
+    // Fallback to default calculation
     // Anchor the bottom of the trapezoid to the bottom of the canvas
     const bottomY = height;
 
@@ -782,6 +875,9 @@ function handleTrapezoidInteractionMove(event) {
     // Update the corresponding trapezoidPoint. No clamping.
     trapezoidPoints[actualTrapezoidPointIndex][0] = canvasX;
     trapezoidPoints[actualTrapezoidPointIndex][1] = canvasY;
+    
+    // Save trapezoid points to localStorage
+    saveTrapezoidPoints();
     
     // Convert container coordinates to actual video coordinates for magnifier
     const videoElement = webcam;
@@ -1380,13 +1476,23 @@ function startWhiteboardMode() {
                     const containerSize = Math.min(canvasContainer.offsetWidth, canvasContainer.offsetHeight);
                     console.log('Final container size:', containerSize);
                     
+                    // Load saved aspect ratio for final sizing
+                    const savedAspectRatio = loadWhiteboardAspectRatio();
                     currentWhiteboardDrawingWidth = containerSize;
-                    currentWhiteboardDrawingHeight = containerSize;
+                    currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
+                    
+                    // Ensure height doesn't exceed container
+                    if (currentWhiteboardDrawingHeight > containerSize) {
+                        currentWhiteboardDrawingHeight = containerSize;
+                        currentWhiteboardDrawingWidth = containerSize * savedAspectRatio;
+                    }
+                    
                     whiteboardCanvas.width = currentWhiteboardDrawingWidth;
                     whiteboardCanvas.height = currentWhiteboardDrawingHeight;
                     
                     console.log('Setting up whiteboard after transition...');
                     console.log('Container size for WebGL:', containerSize);
+                    console.log('Applied aspect ratio:', savedAspectRatio);
                     
                     // Force re-initialization of WebGL with proper size
                     if (gl) {
@@ -1656,6 +1762,9 @@ function doWhiteboardResize(event) {
         // Update CSS display size to match drawing buffer size
         whiteboardCanvas.style.width = currentWhiteboardDrawingWidth + 'px';
         whiteboardCanvas.style.height = currentWhiteboardDrawingHeight + 'px';
+
+        // Save the new aspect ratio
+        saveWhiteboardAspectRatio();
 
         // Update WebGL viewport and uniforms
         if (gl && program) { // Check if WebGL is initialized
