@@ -173,14 +173,25 @@ function drawTrapezoid() {
 
 // Initialize WebGL for perspective correction
 function initWebGL() {
+    console.log('Attempting to initialize WebGL...');
+    console.log('whiteboardCanvas element:', whiteboardCanvas);
+    if (whiteboardCanvas) {
+        console.log('whiteboardCanvas dimensions: width=', whiteboardCanvas.width, 'height=', whiteboardCanvas.height);
+    } else {
+        console.error('whiteboardCanvas element is not found or not ready.');
+        alert('Critical error: Whiteboard canvas element not found.');
+        return;
+    }
+
     // Get WebGL context
     gl = whiteboardCanvas.getContext('webgl') || whiteboardCanvas.getContext('experimental-webgl');
     
     if (!gl) {
-        console.error('WebGL not supported');
+        console.error('WebGL not supported. getContext() returned null.');
         alert('Your browser does not support WebGL, which is required for this application.');
         return;
     }
+    console.log('WebGL context obtained successfully!');
     
     // Get shader sources
     const vertexShaderSource = document.getElementById('vertex-shader').text;
