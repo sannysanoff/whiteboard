@@ -367,18 +367,28 @@ function processVideoFrame() {
     const matrix = transformData.matrix;
     const srcPointsForLogging = transformData.srcPoints; // For verification logging
 
-    // Set the matrix uniform. Note: 'true' for transpose because 'matrix' is row-major.
-    gl.uniformMatrix3fv(matrixLocation, true, matrix);
+    // The 'matrix' is currently row-major.
+    // For gl.uniformMatrix3fv with transpose = false, we need column-major.
+    const matrixTransposed = [
+        matrix[0], matrix[3], matrix[6], // Column 0
+        matrix[1], matrix[4], matrix[7], // Column 1
+        matrix[2], matrix[5], matrix[8]  // Column 2
+    ];
+
+    // Set the matrix uniform. Now 'false' for transpose because matrixTransposed is column-major.
+    gl.uniformMatrix3fv(matrixLocation, false, matrixTransposed);
 
     // --- Verification Logging (runs only once) ---
+    // Logging uses the original row-major 'matrix' for consistency with manual calculation.
     if (!hasLoggedPerspectiveInfo) {
         const dstCenter = [0.5, 0.5]; // Center of the destination (output) canvas
     
         // Manually multiply: H * [dstCenter[0], dstCenter[1], 1.0]^T
-    const h = matrix; // Alias for clarity
-    const sCoordX = h[0]*dstCenter[0] + h[1]*dstCenter[1] + h[2]*1.0;
-    const sCoordY = h[3]*dstCenter[0] + h[4]*dstCenter[1] + h[5]*1.0;
-    const sCoordW = h[6]*dstCenter[0] + h[7]*dstCenter[1] + h[8]*1.0;
+        // Here, 'matrix' is the original row-major matrix.
+        const h_log = matrix; // Alias for clarity in logging context
+        const sCoordX = h_log[0]*dstCenter[0] + h_log[1]*dstCenter[1] + h_log[2]*1.0;
+        const sCoordY = h_log[3]*dstCenter[0] + h_log[4]*dstCenter[1] + h_log[5]*1.0;
+        const sCoordW = h_log[6]*dstCenter[0] + h_log[7]*dstCenter[1] + h_log[8]*1.0;
     
     const transformedCenterHomogenous = [sCoordX, sCoordY, sCoordW];
     const transformedCenterNormalized = [sCoordX / sCoordW, sCoordY / sCoordW];
