@@ -531,13 +531,14 @@ function drawLoop() {
 
         if (isVideoHoldActive && heldVideoFrameCanvas && heldVideoFrameCanvas.width > 0) {
             // Draw the held frame onto the overlay canvas, scaled to fit.
-            // The webcam element is hidden, so overlayCanvas needs to draw the background.
             overlayCtx.drawImage(heldVideoFrameCanvas, 0, 0, heldVideoFrameCanvas.width, heldVideoFrameCanvas.height, 0, 0, overlayCanvas.width, overlayCanvas.height);
+        } else if (webcam && webcam.readyState >= webcam.HAVE_CURRENT_DATA) {
+            // If not holding, draw the live video frame onto the overlay canvas.
+            overlayCtx.drawImage(webcam, 0, 0, webcam.videoWidth, webcam.videoHeight, 0, 0, overlayCanvas.width, overlayCanvas.height);
         }
-        // If not holding, or held frame not ready, the live webcam <video> element is visible underneath.
-        // overlayCtx is just for the trapezoid lines in that case.
+        // If webcam is not ready and not holding, overlayCanvas will be clear before drawing trapezoid.
         
-        // Draw trapezoid outline
+        // Draw trapezoid outline on top of the drawn video frame (or clear background)
         drawTrapezoid();
     } else {
         // Process video frame with perspective correction
@@ -550,9 +551,6 @@ function drawLoop() {
 
 // Draw trapezoid outline on overlay canvas
 function drawTrapezoid() {
-    // Clear the overlay canvas before drawing new elements
-    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-
     // Draw dashed red trapezoid outline
     overlayCtx.beginPath();
     overlayCtx.moveTo(trapezoidPoints[0][0], trapezoidPoints[0][1]);
@@ -1812,18 +1810,19 @@ function toggleVideoHold() {
             }
             const ctx = heldVideoFrameCanvas.getContext('2d');
             ctx.drawImage(webcam, 0, 0, webcam.videoWidth, webcam.videoHeight);
-            webcam.style.display = 'none'; // Hide live video
+            // No longer hiding/showing the webcam element itself.
+            // The overlayCanvas will handle drawing the correct frame.
         } else {
             // Could not capture (e.g., webcam not ready)
             console.warn("Cannot hold video: webcam not ready or canvas issue.");
             isVideoHoldActive = false; // Revert state
             holdVideoButton.textContent = 'Hold Video';
-            if(webcam) webcam.style.display = 'block'; // Ensure live video is visible if webcam element exists
+            // No style change for webcam element here.
             return;
         }
     } else {
         holdVideoButton.textContent = 'Hold Video';
-        if(webcam) webcam.style.display = 'block'; // Show live video
+        // No style change for webcam element here.
     }
     // Request a redraw to update the canvas if needed (drawLoop will handle it)
 }
