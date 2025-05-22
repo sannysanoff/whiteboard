@@ -76,14 +76,16 @@ async function initWebcam() {
             // Start drawing loop
             requestAnimationFrame(drawLoop);
             
-            // Initialize WebGL for perspective correction
-            initWebGL();
+            // WebGL initialization will happen when switching to whiteboard mode
         };
     } catch (error) {
         console.error('Error accessing webcam:', error);
         alert('Unable to access webcam. Please ensure you have granted camera permissions.');
     }
 }
+
+// Global flag to ensure WebGL is initialized only once
+let isWebGLInitialized = false;
 
 // Calculate trapezoid points based on video dimensions and zoom factor
 function calculateTrapezoidPoints(zoomFactor = 1.0) {
@@ -448,6 +450,12 @@ function startWhiteboardMode() {
     }, 30);
     
     isWhiteboardMode = true;
+
+    // Initialize WebGL if not already done
+    if (!isWebGLInitialized) {
+        initWebGL();
+        isWebGLInitialized = true;
+    }
     
     // Capture the current frame for processing
     captureAndProcessFrame();
