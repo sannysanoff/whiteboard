@@ -13,6 +13,10 @@ let currentSrcPoints = null; // To store the source points for logging
 let positionBuffer = null; // WebGL buffer for vertex positions
 let texCoordBuffer = null; // WebGL buffer for texture coordinates
 
+// Variables for draggable trapezoid corners
+let draggedCornerIndex = -1; // Index of the trapezoidPoints being dragged, or -1 if none
+const HANDLE_RADIUS = 15; // Radius of the draggable handles in pixels
+
 // Global variable to control initial phase ('setup' or 'whiteboard')
 // Set to 'whiteboard' for debugging purposes as requested.
 let initialPhase = 'whiteboard'; 
@@ -52,6 +56,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('minus-btn').addEventListener('click', () => adjustZoom(-5));
     document.getElementById('plus-btn').addEventListener('click', () => adjustZoom(5));
     document.getElementById('zoom-slider').addEventListener('input', handleZoomSlider);
+
+    // Add event listeners for dragging trapezoid corners
+    overlayCanvas.addEventListener('mousedown', handleTrapezoidInteractionStart);
+    document.addEventListener('mousemove', handleTrapezoidInteractionMove);
+    document.addEventListener('mouseup', handleTrapezoidInteractionEnd);
+    overlayCanvas.addEventListener('touchstart', handleTrapezoidInteractionStart, { passive: false });
+    document.addEventListener('touchmove', handleTrapezoidInteractionMove, { passive: false });
+    document.addEventListener('touchend', handleTrapezoidInteractionEnd);
     
     // Initialize webcam
     initWebcam();
@@ -231,7 +243,85 @@ function drawTrapezoid() {
     overlayCtx.strokeStyle = 'white';
     overlayCtx.lineWidth = 3;
     overlayCtx.stroke();
+
+    // Draw draggable handles at each corner
+    if (!isWhiteboardMode) { // Only draw handles in setup mode
+        overlayCtx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        overlayCtx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        overlayCtx.lineWidth = 1;
+        trapezoidPoints.forEach(point => {
+            overlayCtx.beginPath();
+            overlayCtx.arc(point[0], point[1], HANDLE_RADIUS, 0, 2 * Math.PI);
+            overlayCtx.fill();
+            overlayCtx.stroke();
+        });
+    }
 }
+
+// Helper function to get event coordinates relative to the canvas
+function getCanvasCoordinates(event, canvas) {
+    const rect = canvas.getBoundingClientRect();
+    let clientX, clientY;
+
+    if (event.touches && event.touches.length > 0) {
+        clientX = event.touches[0].clientX;
+        clientY = event.touches[0].clientY;
+    } else if (event.changedTouches && event.changedTouches.length > 0) { // For touchend
+        clientX = event.changedTouches[0].clientX;
+        clientY = event.changedTouches[0].clientY;
+    }
+    else {
+        clientX = event.clientX;
+        clientY = event.clientY;
+    }
+
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+    };
+}
+
+// Event handlers for trapezoid corner dragging
+function handleTrapezoidInteractionStart(event) {
+    if (isWhiteboardMode) return; // Interaction only in setup mode
+
+    const pos = getCanvasCoordinates(event, overlayCanvas);
+    
+    for (let i = 0; i < trapezoidPoints.length; i++) {
+        const corner = trapezoidPoints[i];
+        const dx = pos.x - corner[0];
+        const dy = pos.y - corner[1];
+        if (dx * dx + dy * dy < HANDLE_RADIUS * HANDLE_RADIUS) {
+            draggedCornerIndex = i;
+            if (event.type === 'touchstart') event.preventDefault(); // Prevent scrolling/zooming
+            return;
+        }
+    }
+}
+
+function handleTrapezoidInteractionMove(event) {
+    if (draggedCornerIndex === -1 || isWhiteboardMode) return;
+
+    const pos = getCanvasCoordinates(event, overlayCanvas);
+    
+    // Update the position of the dragged corner, clamping to canvas bounds
+    trapezoidPoints[draggedCornerIndex][0] = Math.max(0, Math.min(pos.x, videoWidth));
+    trapezoidPoints[draggedCornerIndex][1] = Math.max(0, Math.min(pos.y, videoHeight));
+    
+    updatePerspectiveMatrix(); // Recalculate matrix as points have changed
+    // The drawLoop will handle redrawing the trapezoid and handles
+
+    if (event.type === 'touchmove') event.preventDefault(); // Prevent scrolling/zooming
+}
+
+function handleTrapezoidInteractionEnd(event) {
+    if (draggedCornerIndex === -1) return;
+    draggedCornerIndex = -1;
+}
+
 
 // Initialize WebGL for perspective correction
 function initWebGL() {
