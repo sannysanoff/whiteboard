@@ -52,11 +52,19 @@
                     <video id="webcam" autoplay playsinline></video>
                     <canvas id="overlay-canvas"></canvas>
                     <div id="trapezoid-overlay"></div>
-                    <!-- Draggable Handles -->
-                    <div class="draggable-handle" id="handle-0"></div>
-                    <div class="draggable-handle" id="handle-1"></div>
-                    <div class="draggable-handle" id="handle-2"></div>
-                    <div class="draggable-handle" id="handle-3"></div>
+                    <!-- Draggable Handles with Labels -->
+                    <div class="draggable-handle" id="handle-0">
+                        <div class="corner-label" id="label-0">BR</div>
+                    </div>
+                    <div class="draggable-handle" id="handle-1">
+                        <div class="corner-label" id="label-1">BL</div>
+                    </div>
+                    <div class="draggable-handle" id="handle-2">
+                        <div class="corner-label" id="label-2">UL</div>
+                    </div>
+                    <div class="draggable-handle" id="handle-3">
+                        <div class="corner-label" id="label-3">UR</div>
+                    </div>
                     <div id="slider-container">
                         <button id="minus-btn">-</button>
                         <input type="range" id="zoom-slider" min="1" max="100" value="50">

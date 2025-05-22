@@ -472,9 +472,17 @@ function updateHtmlHandlesPositions() {
             const cssX = (canvasP[0] / videoWidth) * containerRect.width;
             const cssY = (canvasP[1] / videoHeight) * containerRect.height;
             
-            // Apply transform for centering, already in CSS, so just set left/top
-            handleEl.style.left = `${cssX}px`;
-            handleEl.style.top = `${cssY}px`;
+            // Position the pin so the needle tip (bottom center) is at the exact coordinate
+            handleEl.style.left = `${cssX - 8}px`; // 8px = half of pin width (16px)
+            handleEl.style.top = `${cssY - 24}px`; // 24px = full pin height, so tip is at cssY
+            
+            // Position the label above the pin
+            const labelEl = handleEl.querySelector('.corner-label');
+            if (labelEl) {
+                labelEl.style.left = '50%';
+                labelEl.style.top = '-20px';
+                labelEl.style.transform = 'translateX(-50%)';
+            }
         }
     }
 }
@@ -624,21 +632,19 @@ function handleTrapezoidInteractionMove(event) {
     const clientX = event.touches ? event.touches[0].clientX : event.clientX;
     const clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
-    // Calculate new CSS position for the handle, relative to the camera-container
+    // Calculate new CSS position for the needle tip, relative to the camera-container
     let newCssX = clientX - containerRect.left;
     let newCssY = clientY - containerRect.top;
 
-    // Update the HTML handle's position (centered)
-    draggedHtmlHandle.style.left = `${newCssX}px`;
-    draggedHtmlHandle.style.top = `${newCssY}px`;
+    // Update the HTML handle's position so the needle tip is at the mouse position
+    draggedHtmlHandle.style.left = `${newCssX - 8}px`; // 8px = half of pin width
+    draggedHtmlHandle.style.top = `${newCssY - 24}px`; // 24px = full pin height
     
     // Find the index of the dragged handle
     const cornerIndex = htmlHandles.indexOf(draggedHtmlHandle);
     if (cornerIndex === -1) return; // Should not happen
 
-    // Convert the centered CSS position back to canvas coordinates
-    // newCssX and newCssY are already the center of the handle due to transform: translate(-50%, -50%)
-    // So, these directly represent the point on the scaled container.
+    // Convert the needle tip position to canvas coordinates
     const canvasX = (newCssX / containerRect.width) * videoWidth;
     const canvasY = (newCssY / containerRect.height) * videoHeight;
 
