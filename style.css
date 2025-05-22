@@ -271,20 +271,6 @@ h1 {
     display: block;
 }
 
-#trapezoid-overlay {
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80%;
-    height: 60%;
-    border: none;
-    border-radius: 5px;
-    pointer-events: none;
-    box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.5);
-    clip-path: polygon(0% 100%, 100% 100%, 85% 0%, 15% 0%);
-}
-
 #slider-container {
     position: absolute;
     bottom: 10px;

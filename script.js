@@ -529,11 +529,10 @@ function drawLoop() {
 
 // Draw trapezoid outline on overlay canvas
 function drawTrapezoid() {
-    // Draw semi-transparent overlay
-    overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    overlayCtx.fillRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-    
-    // Create clipping path for trapezoid
+    // Clear the overlay canvas before drawing new elements
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+    // Draw dashed red trapezoid outline
     overlayCtx.beginPath();
     overlayCtx.moveTo(trapezoidPoints[0][0], trapezoidPoints[0][1]);
     
@@ -542,25 +541,11 @@ function drawTrapezoid() {
     }
     
     overlayCtx.closePath();
-    
-    // Clear the trapezoid area
-    overlayCtx.save();
-    overlayCtx.clip();
-    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-    overlayCtx.restore();
-    
-    // Don't draw trapezoid outline - remove the horizontal lines
-    // overlayCtx.beginPath();
-    // overlayCtx.moveTo(trapezoidPoints[0][0], trapezoidPoints[0][1]);
-    // 
-    // for (let i = 1; i < trapezoidPoints.length; i++) {
-    //     overlayCtx.lineTo(trapezoidPoints[i][0], trapezoidPoints[i][1]);
-    // }
-    // 
-    // overlayCtx.closePath();
-    // overlayCtx.strokeStyle = 'white';
-    // overlayCtx.lineWidth = 3;
-    // overlayCtx.stroke();
+    overlayCtx.strokeStyle = 'red';
+    overlayCtx.lineWidth = 2; // Adjust line width as needed
+    overlayCtx.setLineDash([5, 5]); // 5px dashes, 5px gaps
+    overlayCtx.stroke();
+    overlayCtx.setLineDash([]); // Reset line dash for other drawings
 
     // Ensure HTML handles are always visible in setup mode
     if (!isWhiteboardMode) {
