@@ -66,6 +66,11 @@ function saveWhiteboardAspectRatio() {
 // Global variable for the rotating triangle's angle
 let triangleAngle = 0;
 
+// Flipper variables
+let currentSlide = 0;
+let flipperInterval = null;
+const FLIPPER_DURATION = 10000; // 10 seconds
+
 // Global constants for initial trapezoid ratios, derived from the CSS #trapezoid-overlay clip-path
 // These ensure the drawn trapezoid aligns with the visual guide.
 // The #trapezoid-overlay has width: 80% and is centered (10% margin on each side).
@@ -168,6 +173,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // updateWhiteboardLayout will be called in initWebcam after dimensions are known
     } else {
         document.getElementById('setup-view').classList.add('active'); // Ensure setup view is active initially
+        // Initialize flipper
+        initializeFlipper();
     }
 
     // Whiteboard resize handles
@@ -1266,6 +1273,9 @@ function calculatePerspectiveMatrix() {
 
 // Switch to whiteboard mode
 function startWhiteboardMode() {
+    // Stop the flipper when entering whiteboard mode
+    stopFlipper();
+    
     // Add resize observer for debugging
     const resizeObserver = new ResizeObserver(entries => {
         for (let entry of entries) {
@@ -1397,6 +1407,8 @@ function backToSetupMode() {
                 if (setupOpacity >= 1) {
                     clearInterval(fadeIn);
                     setupView.classList.add('active');
+                    // Restart the flipper when returning to setup mode
+                    resetFlipperTimer();
                 }
             }, 30);
         }
@@ -1742,5 +1754,61 @@ function stopWhiteboardResize() {
     if (wbRightHandle) {
         wbRightHandle.style.backgroundColor = ''; // Revert to CSS default
         wbRightHandle.style.borderColor = '';   // Revert to CSS default
+    }
+}
+
+// --- Flipper Functions ---
+
+function initializeFlipper() {
+    const dots = document.querySelectorAll('.dot');
+    
+    // Add click listeners to dots
+    dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+            goToSlide(index);
+            resetFlipperTimer();
+        });
+    });
+    
+    // Start automatic flipping
+    startFlipperTimer();
+}
+
+function goToSlide(slideIndex) {
+    const slides = document.querySelectorAll('.flipper-slide');
+    const dots = document.querySelectorAll('.dot');
+    
+    // Remove active class from current slide and dot
+    slides[currentSlide].classList.remove('active');
+    dots[currentSlide].classList.remove('active');
+    
+    // Set new current slide
+    currentSlide = slideIndex;
+    
+    // Add active class to new slide and dot
+    slides[currentSlide].classList.add('active');
+    dots[currentSlide].classList.add('active');
+}
+
+function nextSlide() {
+    const nextIndex = (currentSlide + 1) % 2; // Only 2 slides
+    goToSlide(nextIndex);
+}
+
+function startFlipperTimer() {
+    flipperInterval = setInterval(nextSlide, FLIPPER_DURATION);
+}
+
+function resetFlipperTimer() {
+    if (flipperInterval) {
+        clearInterval(flipperInterval);
+    }
+    startFlipperTimer();
+}
+
+function stopFlipper() {
+    if (flipperInterval) {
+        clearInterval(flipperInterval);
+        flipperInterval = null;
     }
 }
