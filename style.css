@@ -274,6 +274,10 @@ h1 {
     flex-direction: column;
 }
 
+.setup-left-panel {
+    align-items: center; /* Center children horizontally */
+}
+
 /* Specific alignment for content within right panel */
 .setup-right-panel {
     align-items: center; /* Center camera view and button */
@@ -281,8 +285,9 @@ h1 {
 
 /* Adjustments for elements within panels */
 .setup-left-panel > h1 { /* Target direct child h1 of the left panel */
-    text-align: left; /* Override global h1 text-align: center */
+    text-align: center; /* Center the text of the title in the left panel */
     width: 100%; /* Ensure it uses full panel width for text-align to work as expected */
+    max-width: 600px; /* Align with other centered content's max-width */
 }
 
 .setup-right-panel #camera-container {

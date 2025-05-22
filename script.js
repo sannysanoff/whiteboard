@@ -18,8 +18,7 @@ let draggedHtmlHandle = null; // The HTML handle element being dragged
 const HANDLE_SIZE = 20; // Pixel dimension of the square HTML handle (matches CSS)
 
 // Global variable to control initial phase ('setup' or 'whiteboard')
-// Set to 'whiteboard' for debugging purposes as requested.
-let initialPhase = 'whiteboard'; 
+let initialPhase = 'setup'; 
 
 // Global variable for the rotating triangle's angle
 let triangleAngle = 0;
@@ -310,7 +309,7 @@ async function initWebcam(deviceId = null) {
                             initWebGL();
                             isWebGLInitialized = true;
                         });
-                    }, 2000); // 2000ms delay
+                    }, 100); // 100ms delay
                 }
             }
         };
