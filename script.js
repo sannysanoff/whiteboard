@@ -364,32 +364,15 @@ async function initWebcam(deviceId = null) {
             const savedAspectRatio = loadWhiteboardAspectRatio();
             console.log('Loaded aspect ratio:', savedAspectRatio);
             
-            // Use offsetWidth/Height instead of clientWidth/Height for more reliable measurements
-            const containerSize = Math.min(canvasContainer.offsetWidth, canvasContainer.offsetHeight);
-            console.log('Calculated initial whiteboard size:', containerSize);
+            // Height should always fill the viewport height
+            currentWhiteboardDrawingHeight = canvasContainer.offsetHeight;
+            // Width is calculated based on saved aspect ratio
+            currentWhiteboardDrawingWidth = currentWhiteboardDrawingHeight * savedAspectRatio;
             
-            // Initial values will be properly set when whiteboard becomes visible
-            // Apply saved aspect ratio - width/height ratio
-            if (savedAspectRatio >= 1.0) {
-                // Wider than tall - constrain by height
-                currentWhiteboardDrawingHeight = containerSize;
-                currentWhiteboardDrawingWidth = containerSize * savedAspectRatio;
-                
-                // If width exceeds container, constrain by width instead
-                if (currentWhiteboardDrawingWidth > canvasContainer.offsetWidth) {
-                    currentWhiteboardDrawingWidth = canvasContainer.offsetWidth;
-                    currentWhiteboardDrawingHeight = currentWhiteboardDrawingWidth / savedAspectRatio;
-                }
-            } else {
-                // Taller than wide - constrain by width
-                currentWhiteboardDrawingWidth = containerSize;
-                currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
-                
-                // If height exceeds container, constrain by height instead
-                if (currentWhiteboardDrawingHeight > canvasContainer.offsetHeight) {
-                    currentWhiteboardDrawingHeight = canvasContainer.offsetHeight;
-                    currentWhiteboardDrawingWidth = currentWhiteboardDrawingHeight * savedAspectRatio;
-                }
+            // If width exceeds container width, constrain by width and recalculate height
+            if (currentWhiteboardDrawingWidth > canvasContainer.offsetWidth) {
+                currentWhiteboardDrawingWidth = canvasContainer.offsetWidth;
+                currentWhiteboardDrawingHeight = currentWhiteboardDrawingWidth / savedAspectRatio;
             }
             
             console.log('Set initial whiteboard dimensions:', {
@@ -1492,27 +1475,15 @@ function startWhiteboardMode() {
                     // Load saved aspect ratio for final sizing
                     const savedAspectRatio = loadWhiteboardAspectRatio();
                     
-                    // Apply saved aspect ratio properly
-                    if (savedAspectRatio >= 1.0) {
-                        // Wider than tall - constrain by height
-                        currentWhiteboardDrawingHeight = containerSize;
-                        currentWhiteboardDrawingWidth = containerSize * savedAspectRatio;
-                        
-                        // If width exceeds container, constrain by width instead
-                        if (currentWhiteboardDrawingWidth > containerSize) {
-                            currentWhiteboardDrawingWidth = containerSize;
-                            currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
-                        }
-                    } else {
-                        // Taller than wide - constrain by width
+                    // Height should always fill the viewport height
+                    currentWhiteboardDrawingHeight = containerSize;
+                    // Width is calculated based on saved aspect ratio
+                    currentWhiteboardDrawingWidth = containerSize * savedAspectRatio;
+                    
+                    // If width exceeds container width, constrain by width and recalculate height
+                    if (currentWhiteboardDrawingWidth > containerSize) {
                         currentWhiteboardDrawingWidth = containerSize;
                         currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
-                        
-                        // If height exceeds container, constrain by height instead
-                        if (currentWhiteboardDrawingHeight > containerSize) {
-                            currentWhiteboardDrawingHeight = containerSize;
-                            currentWhiteboardDrawingWidth = containerSize * savedAspectRatio;
-                        }
                     }
                     
                     whiteboardCanvas.width = currentWhiteboardDrawingWidth;
@@ -1728,29 +1699,16 @@ function updateWhiteboardLayout() {
     
     // Load and apply saved aspect ratio
     const savedAspectRatio = loadWhiteboardAspectRatio();
-    const containerSize = Math.min(canvasContainer.offsetWidth, canvasContainer.offsetHeight);
     
-    // Apply saved aspect ratio properly
-    if (savedAspectRatio >= 1.0) {
-        // Wider than tall - constrain by height
-        currentWhiteboardDrawingHeight = containerSize;
-        currentWhiteboardDrawingWidth = containerSize * savedAspectRatio;
-        
-        // If width exceeds container, constrain by width instead
-        if (currentWhiteboardDrawingWidth > containerSize) {
-            currentWhiteboardDrawingWidth = containerSize;
-            currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
-        }
-    } else {
-        // Taller than wide - constrain by width
-        currentWhiteboardDrawingWidth = containerSize;
-        currentWhiteboardDrawingHeight = containerSize / savedAspectRatio;
-        
-        // If height exceeds container, constrain by height instead
-        if (currentWhiteboardDrawingHeight > containerSize) {
-            currentWhiteboardDrawingHeight = containerSize;
-            currentWhiteboardDrawingWidth = containerSize * savedAspectRatio;
-        }
+    // Height should always fill the viewport height
+    currentWhiteboardDrawingHeight = canvasContainer.offsetHeight;
+    // Width is calculated based on saved aspect ratio
+    currentWhiteboardDrawingWidth = currentWhiteboardDrawingHeight * savedAspectRatio;
+    
+    // If width exceeds container width, constrain by width and recalculate height
+    if (currentWhiteboardDrawingWidth > canvasContainer.offsetWidth) {
+        currentWhiteboardDrawingWidth = canvasContainer.offsetWidth;
+        currentWhiteboardDrawingHeight = currentWhiteboardDrawingWidth / savedAspectRatio;
     }
     
     console.log('Dimension changes:', {
