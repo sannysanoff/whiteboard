@@ -509,7 +509,12 @@ function loadTrapezoidPoints() {
 // Save trapezoid points to localStorage
 function saveTrapezoidPoints() {
     try {
-        localStorage.setItem(STORAGE_KEYS.TRAPEZOID_POINTS, JSON.stringify(trapezoidPoints));
+        // Convert from display coordinates to camera coordinates before saving
+        const cameraCoordinates = trapezoidPoints.map(point => [
+            (point[0] / videoWidth) * webcam.videoWidth,
+            (point[1] / videoHeight) * webcam.videoHeight
+        ]);
+        localStorage.setItem(STORAGE_KEYS.TRAPEZOID_POINTS, JSON.stringify(cameraCoordinates));
     } catch (error) {
         console.warn('Error saving trapezoid points to localStorage:', error);
     }
@@ -523,8 +528,11 @@ function calculateTrapezoidPoints(zoomFactor = 1.0) {
     // Try to load saved trapezoid points first
     const savedPoints = loadTrapezoidPoints();
     if (savedPoints && zoomFactor === 1.0) {
-        // Saved points are already in absolute video coordinates, just use them directly
-        trapezoidPoints = savedPoints;
+        // Convert from camera coordinates to display coordinates
+        trapezoidPoints = savedPoints.map(point => [
+            (point[0] / webcam.videoWidth) * videoWidth,
+            (point[1] / webcam.videoHeight) * videoHeight
+        ]);
         
         // Update the perspective matrix whenever trapezoid points change
         updatePerspectiveMatrix();
