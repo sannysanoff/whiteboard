@@ -1222,7 +1222,7 @@ function updateWhiteboardLayout() {
 
     // Calculate maximum possible dimensions with 1:1 aspect ratio
     const aspectRatio = 1; // Force 1:1 ratio
-    const maxWidth = Math.min(containerWidth, containerHeight * aspectRatio);
+    const maxWidth = Math.min(containerWidth, window.innerWidth, containerHeight * aspectRatio);
     const maxHeight = Math.min(containerHeight, containerWidth / aspectRatio);
     
     console.log('Calculated maximum dimensions:', {maxWidth, maxHeight});
@@ -1233,8 +1233,9 @@ function updateWhiteboardLayout() {
         currentWhiteboardDrawingHeight = maxHeight;
     }
 
-    // Clamp dimensions to container size
-    currentWhiteboardDrawingWidth = Math.min(currentWhiteboardDrawingWidth, maxWidth);
+    // Clamp dimensions to container AND window size
+    const globalMaxWidth = Math.min(maxWidth, window.innerWidth);
+    currentWhiteboardDrawingWidth = Math.min(currentWhiteboardDrawingWidth, globalMaxWidth);
     currentWhiteboardDrawingHeight = Math.min(currentWhiteboardDrawingHeight, maxHeight);
 
     // Update canvas dimensions
