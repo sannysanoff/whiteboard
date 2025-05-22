@@ -199,6 +199,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('mousemove', doWhiteboardResize);
     document.addEventListener('mouseup', stopWhiteboardResize);
+
+    // Global keydown listener for Spacebar to toggle video hold
+    document.addEventListener('keydown', (event) => {
+        if (event.code === 'Space' && !isWhiteboardMode) {
+            // Prevent toggling if focus is on an input or button
+            const activeElement = document.activeElement;
+            if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'BUTTON')) {
+                return;
+            }
+            event.preventDefault(); // Prevent default spacebar action (e.g., scrolling or button click if focused)
+            toggleVideoHold();
+        }
+    });
 });
 
 
