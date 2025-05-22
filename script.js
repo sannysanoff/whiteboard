@@ -829,20 +829,6 @@ function handleTrapezoidInteractionMove(event) {
             magnifierCtx.lineWidth = 1;
             magnifierCtx.fillStyle = 'red';
             
-            // Convert trapezoid points to magnifier coordinates
-            const magnifierPoints = [];
-            for (let i = 0; i < trapezoidPoints.length; i++) {
-                const trapPoint = trapezoidPoints[i];
-                // Convert from video coordinates to magnifier coordinates
-                const magnifierX = ((trapPoint[0] - sx) / sourceSize) * destSize;
-                const magnifierY = ((trapPoint[1] - sy) / sourceSize) * destSize;
-                magnifierPoints.push([magnifierX, magnifierY]);
-            }
-            
-            // Draw lines from center dot to the two neighboring corners of the dragged corner
-            const centerX = destSize / 2;
-            const centerY = destSize / 2;
-            
             // Get the trapezoid point index that corresponds to the dragged handle
             const draggedTrapezoidIndex = trapezoidPointIndices[handleIdx];
             
@@ -850,12 +836,37 @@ function handleTrapezoidInteractionMove(event) {
             const prevIndex = (draggedTrapezoidIndex + 3) % 4; // Previous corner (wrapping around)
             const nextIndex = (draggedTrapezoidIndex + 1) % 4; // Next corner (wrapping around)
             
+            // Get the current dragged corner position in video coordinates
+            const currentCornerX = magnifierVideoX; // This is where the cursor/center is
+            const currentCornerY = magnifierVideoY;
+            
+            // Convert neighbor corners to magnifier coordinates relative to current corner
+            const prevCornerVideoX = trapezoidPoints[prevIndex][0];
+            const prevCornerVideoY = trapezoidPoints[prevIndex][1];
+            const nextCornerVideoX = trapezoidPoints[nextIndex][0];
+            const nextCornerVideoY = trapezoidPoints[nextIndex][1];
+            
+            // Calculate relative positions in video coordinates
+            const prevRelativeX = prevCornerVideoX - currentCornerX;
+            const prevRelativeY = prevCornerVideoY - currentCornerY;
+            const nextRelativeX = nextCornerVideoX - currentCornerX;
+            const nextRelativeY = nextCornerVideoY - currentCornerY;
+            
+            // Convert to magnifier coordinates (magnification factor = destSize/sourceSize = 100/50 = 2)
+            const magnificationFactor = destSize / sourceSize;
+            const centerX = destSize / 2;
+            const centerY = destSize / 2;
+            
+            const prevMagnifierX = centerX + (prevRelativeX * magnificationFactor);
+            const prevMagnifierY = centerY + (prevRelativeY * magnificationFactor);
+            const nextMagnifierX = centerX + (nextRelativeX * magnificationFactor);
+            const nextMagnifierY = centerY + (nextRelativeY * magnificationFactor);
+            
             magnifierCtx.beginPath();
             
             // Draw line to previous neighbor
-            const prevCorner = magnifierPoints[prevIndex];
             const clippedLine1 = clipLineToRect(centerX, centerY, 
-                                              prevCorner[0], prevCorner[1], 
+                                              prevMagnifierX, prevMagnifierY, 
                                               0, 0, destSize, destSize);
             if (clippedLine1) {
                 magnifierCtx.moveTo(clippedLine1.x1, clippedLine1.y1);
@@ -863,9 +874,8 @@ function handleTrapezoidInteractionMove(event) {
             }
             
             // Draw line to next neighbor
-            const nextCorner = magnifierPoints[nextIndex];
             const clippedLine2 = clipLineToRect(centerX, centerY, 
-                                              nextCorner[0], nextCorner[1], 
+                                              nextMagnifierX, nextMagnifierY, 
                                               0, 0, destSize, destSize);
             if (clippedLine2) {
                 magnifierCtx.moveTo(clippedLine2.x1, clippedLine2.y1);
@@ -874,15 +884,19 @@ function handleTrapezoidInteractionMove(event) {
             
             magnifierCtx.stroke();
             
-            // Draw dots for trapezoid corners that are visible in magnifier
-            for (let i = 0; i < magnifierPoints.length; i++) {
-                const point = magnifierPoints[i];
-                if (point[0] >= 0 && point[0] <= destSize && 
-                    point[1] >= 0 && point[1] <= destSize) {
-                    magnifierCtx.beginPath();
-                    magnifierCtx.arc(point[0], point[1], 2, 0, 2 * Math.PI);
-                    magnifierCtx.fill();
-                }
+            // Draw dots for neighbor corners if they are visible in magnifier
+            if (prevMagnifierX >= 0 && prevMagnifierX <= destSize && 
+                prevMagnifierY >= 0 && prevMagnifierY <= destSize) {
+                magnifierCtx.beginPath();
+                magnifierCtx.arc(prevMagnifierX, prevMagnifierY, 2, 0, 2 * Math.PI);
+                magnifierCtx.fill();
+            }
+            
+            if (nextMagnifierX >= 0 && nextMagnifierX <= destSize && 
+                nextMagnifierY >= 0 && nextMagnifierY <= destSize) {
+                magnifierCtx.beginPath();
+                magnifierCtx.arc(nextMagnifierX, nextMagnifierY, 2, 0, 2 * Math.PI);
+                magnifierCtx.fill();
             }
             
             // Draw center dot
