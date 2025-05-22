@@ -9,6 +9,13 @@ let gl, program;
 let positionLocation, texCoordLocation;
 let matrixLocation, resolutionLocation;
 
+// Global variable to control initial phase ('setup' or 'whiteboard')
+// Set to 'whiteboard' for debugging purposes as requested.
+let initialPhase = 'whiteboard'; 
+
+// Global variable for the rotating triangle's angle
+let triangleAngle = 0;
+
 // Global constants for initial trapezoid ratios, derived from the CSS #trapezoid-overlay clip-path
 // These ensure the drawn trapezoid aligns with the visual guide.
 // The #trapezoid-overlay has width: 80% and is centered (10% margin on each side).
@@ -44,6 +51,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize webcam
     initWebcam();
+
+    // Handle initial phase display based on the global variable
+    if (initialPhase === 'whiteboard') {
+        document.getElementById('setup-view').style.display = 'none';
+        document.getElementById('whiteboard-view').style.display = 'flex';
+        document.getElementById('whiteboard-view').style.opacity = '1';
+        isWhiteboardMode = true; // Set mode immediately
+    } else {
+        document.getElementById('setup-view').classList.add('active'); // Ensure setup view is active initially
+    }
 });
 
 // Initialize webcam access
@@ -76,7 +93,14 @@ async function initWebcam() {
             // Start drawing loop
             requestAnimationFrame(drawLoop);
             
-            // WebGL initialization will happen when switching to whiteboard mode
+            // If starting directly in whiteboard mode, initialize WebGL and capture frame
+            if (initialPhase === 'whiteboard') {
+                if (!isWebGLInitialized) {
+                    initWebGL();
+                    isWebGLInitialized = true;
+                }
+                // No need for captureAndProcessFrame here, processVideoFrame uses webcam directly
+            }
         };
     } catch (error) {
         console.error('Error accessing webcam:', error);
@@ -338,6 +362,31 @@ function processVideoFrame() {
     
     // Draw the rectangle
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    // --- Additional render: Draw a small rotating triangle on the 2D context ---
+    whiteboardCtx.save();
+    
+    // Position in top-right corner, with some padding
+    const triangleSize = 20; // Half-side length for equilateral triangle
+    const padding = 30;
+    const triangleX = whiteboardCanvas.width - padding;
+    const triangleY = padding;
+
+    whiteboardCtx.translate(triangleX, triangleY);
+    whiteboardCtx.rotate(triangleAngle);
+    
+    whiteboardCtx.beginPath();
+    // Equilateral triangle points relative to (0,0) after translation
+    whiteboardCtx.moveTo(0, -triangleSize); // Top point
+    whiteboardCtx.lineTo(triangleSize * Math.sqrt(3) / 2, triangleSize / 2); // Bottom-right point
+    whiteboardCtx.lineTo(-triangleSize * Math.sqrt(3) / 2, triangleSize / 2); // Bottom-left point
+    whiteboardCtx.closePath();
+    
+    whiteboardCtx.fillStyle = 'red';
+    whiteboardCtx.fill();
+    whiteboardCtx.restore();
+
+    triangleAngle += 0.05; // Increment rotation angle for next frame
 }
 
 // Calculate perspective transformation matrix
@@ -455,14 +504,18 @@ function startWhiteboardMode() {
                 
                 if (whiteboardOpacity >= 1) {
                     clearInterval(fadeIn);
+                    // Initialize WebGL here, after the canvas is fully visible
+                    if (!isWebGLInitialized) {
+                        initWebGL();
+                        isWebGLInitialized = true;
+                    }
+                    // No need for captureAndProcessFrame here, processVideoFrame uses webcam directly
                 }
             }, 30);
         }
     }, 30);
     
     isWhiteboardMode = true;
-    
-    // Capture the current frame for processing (moved inside fadeIn completion)
 }
 
 // Switch back to setup mode
