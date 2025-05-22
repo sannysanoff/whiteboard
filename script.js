@@ -474,7 +474,7 @@ function updateHtmlHandlesPositions() {
             
             // Position the pin so the needle tip (bottom center) is at the exact coordinate
             handleEl.style.left = `${cssX - 8}px`; // 8px = half of pin width (16px)
-            handleEl.style.top = `${cssY - 24}px`; // 24px = full pin height, so tip is at cssY
+            handleEl.style.top = `${cssY - 40}px`; // 40px = full pin height, so tip is at cssY
             
             // Position the label above the pin
             const labelEl = handleEl.querySelector('.corner-label');
@@ -638,7 +638,7 @@ function handleTrapezoidInteractionMove(event) {
 
     // Update the HTML handle's position so the needle tip is at the mouse position
     draggedHtmlHandle.style.left = `${newCssX - 8}px`; // 8px = half of pin width
-    draggedHtmlHandle.style.top = `${newCssY - 24}px`; // 24px = full pin height
+    draggedHtmlHandle.style.top = `${newCssY - 40}px`; // 40px = full pin height
     
     // Find the index of the dragged handle
     const cornerIndex = htmlHandles.indexOf(draggedHtmlHandle);
