@@ -414,11 +414,24 @@ function calculatePerspectiveMatrix() {
     ]);
     
     // Destination points (rectangle corners in normalized coordinates)
+    // The goal is to map the paper's actual orientation to the output canvas correctly:
+    // - Paper's Top-Left (PTL) should map to Output Top-Left [0,0]
+    // - Paper's Top-Right (PTR) should map to Output Top-Right [1,0]
+    // - Paper's Bottom-Left (PBL) should map to Output Bottom-Left [0,1]
+    // - Paper's Bottom-Right (PBR) should map to Output Bottom-Right [1,1]
+
+    // From setup analysis, the trapezoidPoints correspond to paper corners as follows:
+    // trapezoidPoints[0] (Trapezoid's Bottom-Left) is Paper's Top-Right (PTR)
+    // trapezoidPoints[1] (Trapezoid's Bottom-Right) is Paper's Top-Left (PTL)
+    // trapezoidPoints[2] (Trapezoid's Top-Right) is Paper's Bottom-Left (PBL)
+    // trapezoidPoints[3] (Trapezoid's Top-Left) is Paper's Bottom-Right (PBR)
+
+    // Therefore, dstPoints (which maps 1:1 with srcPoints derived from trapezoidPoints) should be:
     const dstPoints = [
-        [0, 1],  // Bottom-left
-        [1, 1],  // Bottom-right
-        [1, 0],  // Top-right
-        [0, 0]   // Top-left
+        [1, 0],  // srcPoints[0] (PTR) maps to Output Top-Right
+        [0, 0],  // srcPoints[1] (PTL) maps to Output Top-Left
+        [0, 1],  // srcPoints[2] (PBL) maps to Output Bottom-Left
+        [1, 1]   // srcPoints[3] (PBR) maps to Output Bottom-Right
     ];
     
     // Calculate homography matrix (perspective transformation)
