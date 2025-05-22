@@ -317,8 +317,8 @@ h1 {
 }
 
 #start-btn {
-    background-color: white;
-    color: #333;
+    background-color: #28a745; /* Neutral green */
+    color: white;
     border: none;
     padding: 12px 24px;
     font-size: 1rem;
@@ -330,7 +330,7 @@ h1 {
 }
 
 #start-btn:hover {
-    background-color: #f5f5f7;
+    background-color: #218838; /* Darker green */
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
@@ -561,7 +561,7 @@ h1 {
 }
 
 #hold-video-btn {
-    background-color: #6c757d; /* Bootstrap secondary-like color */
+    background-color: #333; /* Dark gray / Off-black */
     color: white;
     border: none;
     padding: 12px 24px;
@@ -574,7 +574,7 @@ h1 {
 }
 
 #hold-video-btn:hover {
-    background-color: #5a6268;
+    background-color: #444; /* Slightly lighter dark gray */
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
