@@ -97,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Populate camera selection dropdown
 async function populateCameraList() {
+    console.log('Beginning webcam detection (populateCameraList)...');
     try {
         // First, try to get user media to ensure permissions are granted.
         // This helps in getting more descriptive labels from enumerateDevices.
@@ -113,7 +114,9 @@ async function populateCameraList() {
         }
 
         const devices = await navigator.mediaDevices.enumerateDevices();
+        console.log('Webcam detection result (all devices):', devices);
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        console.log('Filtered video input devices:', videoDevices);
 
         cameraSelect.innerHTML = ''; // Clear existing options
 
