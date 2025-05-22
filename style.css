@@ -213,10 +213,30 @@ h1 {
 }
 
 #whiteboard-canvas {
-    width: 100%;
-    height: 100%;
+    /* width and height will be set by JS via style attribute */
     background-color: white;
+    position: absolute; /* For centering and explicit sizing */
+    /* top, left will be set by JS via style attribute */
 }
+
+#canvas-container:hover .whiteboard-resize-handle {
+    display: block;
+}
+
+.whiteboard-resize-handle {
+    position: absolute;
+    width: 10px; /* Width of the handle */
+    height: 50px; /* Visual height of the handle */
+    background-color: rgba(100, 100, 100, 0.5);
+    cursor: ew-resize;
+    z-index: 10; /* Ensure handles are above the canvas if overlapping, but below UI controls */
+    display: none; /* Initially hidden, shown on container hover */
+    border-radius: 3px;
+}
+
+/* Specific styles if needed for left/right, but positioning is via JS */
+/* .whiteboard-resize-handle.left { } */
+/* .whiteboard-resize-handle.right { } */
 
 .controls {
     display: flex;

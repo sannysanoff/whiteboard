@@ -1,6 +1,6 @@
 // Global variables
-let webcam, overlayCanvas, whiteboardCanvas, cameraSelect; // Added cameraSelect
-let overlayCtx, whiteboardCtx;
+let webcam, overlayCanvas, whiteboardCanvas, cameraSelect;
+let overlayCtx; // whiteboardCtx removed as whiteboard is WebGL
 let videoWidth, videoHeight;
 let trapezoidPoints = [];
 let isWhiteboardMode = false;
@@ -18,7 +18,14 @@ let draggedHtmlHandle = null; // The HTML handle element being dragged
 const HANDLE_SIZE = 20; // Pixel dimension of the square HTML handle (matches CSS)
 
 // Global variable to control initial phase ('setup' or 'whiteboard')
-let initialPhase = 'setup'; 
+let initialPhase = 'setup';
+
+// Whiteboard resizing variables
+let wbLeftHandle, wbRightHandle;
+let isResizingWhiteboard = false;
+let draggedWhiteboardHandleSide = null;
+let currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight;
+let wbResizeInitialMouseX, wbResizeInitialWidth;
 
 // Global variable for the rotating triangle's angle
 let triangleAngle = 0;
@@ -133,7 +140,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initWebcam(); 
 
     // Add resize listener to update handle positions
-    window.addEventListener('resize', updateHtmlHandlesPositions);
+    window.addEventListener('resize', () => {
+        updateHtmlHandlesPositions(); // For setup view
+        if (isWhiteboardMode && whiteboardCanvas && currentWhiteboardDrawingWidth && currentWhiteboardDrawingHeight) {
+            updateWhiteboardLayout(); // For whiteboard view
+        }
+    });
 
     // Handle initial phase display based on the global variable
     if (initialPhase === 'whiteboard') {
@@ -141,9 +153,35 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('whiteboard-view').style.display = 'flex';
         document.getElementById('whiteboard-view').style.opacity = '1';
         isWhiteboardMode = true; // Set mode immediately
+        // updateWhiteboardLayout will be called in initWebcam after dimensions are known
     } else {
         document.getElementById('setup-view').classList.add('active'); // Ensure setup view is active initially
     }
+
+    // Whiteboard resize handles
+    wbLeftHandle = document.getElementById('wb-left-handle');
+    wbRightHandle = document.getElementById('wb-right-handle');
+    const canvasContainer = document.getElementById('canvas-container');
+
+    canvasContainer.addEventListener('mouseenter', () => {
+        if (isWhiteboardMode && !isResizingWhiteboard) {
+            wbLeftHandle.style.display = 'block';
+            wbRightHandle.style.display = 'block';
+        }
+    });
+    canvasContainer.addEventListener('mouseleave', () => {
+        if (isWhiteboardMode && !isResizingWhiteboard) {
+            wbLeftHandle.style.display = 'none';
+            wbRightHandle.style.display = 'none';
+        }
+    });
+
+    [wbLeftHandle, wbRightHandle].forEach(handle => {
+        handle.addEventListener('mousedown', startWhiteboardResize);
+    });
+
+    document.addEventListener('mousemove', doWhiteboardResize);
+    document.addEventListener('mouseup', stopWhiteboardResize);
 });
 
 // Populate camera selection dropdown
@@ -242,8 +280,12 @@ async function initWebcam(deviceId = null) {
             // Set canvas dimensions to match video
             overlayCanvas.width = videoWidth;
             overlayCanvas.height = videoHeight;
+            
+            // --- Whiteboard Canvas initial drawing surface size ---
             whiteboardCanvas.width = videoWidth;
             whiteboardCanvas.height = videoHeight;
+            currentWhiteboardDrawingWidth = videoWidth; 
+            currentWhiteboardDrawingHeight = videoHeight;
 
             // Populate camera list AFTER stream is active and permissions are granted
             await populateCameraList();
@@ -305,11 +347,12 @@ async function initWebcam(deviceId = null) {
                     // This gives the browser more time to fully render the canvas 
                     // with its new dimensions and visibility before attempting to get the WebGL context.
                     setTimeout(() => {
-                        requestAnimationFrame(() => { // Still good to sync with rendering cycle
+                        requestAnimationFrame(() => { 
                             initWebGL();
                             isWebGLInitialized = true;
+                            updateWhiteboardLayout(); // Position and style canvas
                         });
-                    }, 100); // 100ms delay
+                    }, 100); 
                 }
             }
         };
@@ -1028,12 +1071,11 @@ function startWhiteboardMode() {
                 
                 if (whiteboardOpacity >= 1) {
                     clearInterval(fadeIn);
-                    // Initialize WebGL here, after the canvas is fully visible
                     if (!isWebGLInitialized) {
                         initWebGL();
                         isWebGLInitialized = true;
                     }
-                    // No need for captureAndProcessFrame here, processVideoFrame uses webcam directly
+                    updateWhiteboardLayout(); // Position and style canvas
                 }
             }, 30);
         }
@@ -1137,11 +1179,103 @@ function handleZoomSlider() {
     calculateTrapezoidPoints(zoomFactor);
 }
 
-// Note: The following functions were duplicated and have been removed:
-// backToSetupMode, captureAndProcessFrame, clearWhiteboard (old 2D version), 
-// saveWhiteboard (if it was different), adjustZoom, handleZoomSlider.
-// Ensure the primary versions of these functions are correct and in their logical place.
-// The primary backToSetupMode is around line 701.
-// The primary clearWhiteboard (WebGL version) is around line 747.
-// The primary saveWhiteboard is around line 760.
-// The primary adjustZoom and handleZoomSlider are around line 767 and 774.
+
+// --- Whiteboard Resizing Functions ---
+
+function updateWhiteboardLayout() {
+    if (!whiteboardCanvas || !wbLeftHandle || !wbRightHandle || !currentWhiteboardDrawingWidth || !currentWhiteboardDrawingHeight) {
+        console.warn("updateWhiteboardLayout: Missing elements or dimensions.");
+        return;
+    }
+
+    const canvasContainer = document.getElementById('canvas-container');
+    const containerWidth = canvasContainer.clientWidth;
+    const containerHeight = canvasContainer.clientHeight;
+
+    // Set CSS style for the whiteboard canvas
+    whiteboardCanvas.style.width = currentWhiteboardDrawingWidth + 'px';
+    whiteboardCanvas.style.height = currentWhiteboardDrawingHeight + 'px';
+    whiteboardCanvas.style.left = (containerWidth - currentWhiteboardDrawingWidth) / 2 + 'px';
+    whiteboardCanvas.style.top = (containerHeight - currentWhiteboardDrawingHeight) / 2 + 'px';
+
+    // Position handles
+    const canvasStyle = whiteboardCanvas.style;
+    const wbTop = parseFloat(canvasStyle.top);
+    const wbLeft = parseFloat(canvasStyle.left);
+    const wbWidth = parseFloat(canvasStyle.width); // This is currentWhiteboardDrawingWidth
+    // const wbHeight = parseFloat(canvasStyle.height); // This is currentWhiteboardDrawingHeight
+
+    const handleCssWidth = wbLeftHandle.offsetWidth; // Get actual width from CSS/browser
+    const handleCssHeight = wbLeftHandle.offsetHeight; // Get actual height from CSS/browser
+
+    wbLeftHandle.style.top = (wbTop + currentWhiteboardDrawingHeight / 2 - handleCssHeight / 2) + 'px';
+    wbLeftHandle.style.left = (wbLeft - handleCssWidth) + 'px';
+    
+    wbRightHandle.style.top = wbLeftHandle.style.top;
+    wbRightHandle.style.left = (wbLeft + wbWidth) + 'px';
+}
+
+function startWhiteboardResize(event) {
+    event.preventDefault();
+    isResizingWhiteboard = true;
+    draggedWhiteboardHandleSide = event.target.dataset.side;
+    wbResizeInitialMouseX = event.clientX;
+    wbResizeInitialWidth = currentWhiteboardDrawingWidth;
+
+    document.body.style.cursor = 'ew-resize';
+    // Keep handles visible during resize
+    wbLeftHandle.style.display = 'block';
+    wbRightHandle.style.display = 'block';
+}
+
+function doWhiteboardResize(event) {
+    if (!isResizingWhiteboard) return;
+    event.preventDefault();
+
+    const deltaX = event.clientX - wbResizeInitialMouseX;
+    let newWidth;
+
+    if (draggedWhiteboardHandleSide === 'left') {
+        newWidth = wbResizeInitialWidth - 2 * deltaX; // Multiply by 2 to keep centered
+    } else { // 'right'
+        newWidth = wbResizeInitialWidth + 2 * deltaX;
+    }
+
+    // Clamp newWidth to a minimum (e.g., 100px) and maximum (e.g., container width)
+    const canvasContainer = document.getElementById('canvas-container');
+    const minWidth = 100;
+    const maxWidth = canvasContainer.clientWidth - 20; // Ensure some space for handles visually
+    
+    newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
+
+    if (newWidth !== currentWhiteboardDrawingWidth) {
+        currentWhiteboardDrawingWidth = newWidth;
+        whiteboardCanvas.width = currentWhiteboardDrawingWidth; // Update drawing buffer
+
+        // Update WebGL viewport and uniforms
+        if (gl && program) { // Check if WebGL is initialized
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            gl.useProgram(program); // Ensure program is active for uniform setting
+            gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
+            
+            // Re-set the rectangle for drawing (as its dimensions are based on canvas width/height)
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); // Ensure correct buffer is bound
+            setRectangle(gl, 0, 0, gl.canvas.width, gl.canvas.height);
+        }
+        updateWhiteboardLayout(); // Update CSS and handle positions
+    }
+}
+
+function stopWhiteboardResize() {
+    if (!isResizingWhiteboard) return;
+    isResizingWhiteboard = false;
+    draggedWhiteboardHandleSide = null;
+    document.body.style.cursor = 'default';
+
+    // Hide handles if mouse is not over the container
+    const canvasContainer = document.getElementById('canvas-container');
+    if (!canvasContainer.matches(':hover')) {
+        wbLeftHandle.style.display = 'none';
+        wbRightHandle.style.display = 'none';
+    }
+}
