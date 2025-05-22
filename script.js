@@ -1210,7 +1210,10 @@ function handleZoomSlider() {
 // --- Whiteboard Resizing Functions ---
 
 function updateWhiteboardLayout() {
-    if (!whiteboardCanvas || !wbLeftHandle || !wbRightHandle || !currentWhiteboardDrawingWidth || !currentWhiteboardDrawingHeight) return;
+    if (!whiteboardCanvas || !wbLeftHandle || !wbRightHandle || !currentWhiteboardDrawingWidth || !currentWhiteboardDrawingHeight) {
+        console.log('updateWhiteboardLayout: Missing required elements or dimensions');
+        return;
+    }
 
     // Ensure handles are visible if in whiteboard mode.
     // backToSetupMode() handles hiding them when exiting this mode.
@@ -1232,7 +1235,15 @@ function updateWhiteboardLayout() {
         return;
     }
 
-    console.log('updateWhiteboardLayout container dimensions:', {
+    console.log('=== updateWhiteboardLayout called ===');
+    console.log('Call stack:', new Error().stack.split('\n').slice(1, 4).join('\n'));
+    console.log('Current whiteboard dimensions:', {
+        width: currentWhiteboardDrawingWidth,
+        height: currentWhiteboardDrawingHeight,
+        canvasWidth: whiteboardCanvas.width,
+        canvasHeight: whiteboardCanvas.height
+    });
+    console.log('Container dimensions:', {
         clientWidth: canvasContainer.clientWidth,
         clientHeight: canvasContainer.clientHeight,
         offsetWidth: canvasContainer.offsetWidth,
@@ -1242,25 +1253,37 @@ function updateWhiteboardLayout() {
     const containerWidth = canvasContainer.clientWidth;
     const containerHeight = canvasContainer.clientHeight;
 
-    console.log('Available container space:', {containerWidth, containerHeight});
-
     // Calculate maximum possible dimensions with 1:1 aspect ratio
     const aspectRatio = 1; // Force 1:1 ratio
     const maxWidth = Math.min(containerWidth, window.innerWidth, containerHeight * aspectRatio);
     const maxHeight = Math.min(containerHeight, containerWidth / aspectRatio);
     
-    console.log('Calculated maximum dimensions:', {maxWidth, maxHeight});
+    console.log('Calculated limits:', {maxWidth, maxHeight, windowWidth: window.innerWidth});
 
     // Set initial dimensions if not already set
+    const oldWidth = currentWhiteboardDrawingWidth;
+    const oldHeight = currentWhiteboardDrawingHeight;
+    
     if (!currentWhiteboardDrawingWidth || !currentWhiteboardDrawingHeight) {
+        console.log('Setting initial whiteboard dimensions');
         currentWhiteboardDrawingWidth = maxWidth;
         currentWhiteboardDrawingHeight = maxHeight;
     }
 
     // Clamp dimensions to container AND window size
     const globalMaxWidth = Math.min(maxWidth, window.innerWidth);
-    currentWhiteboardDrawingWidth = Math.min(currentWhiteboardDrawingWidth, globalMaxWidth);
-    currentWhiteboardDrawingHeight = Math.min(currentWhiteboardDrawingHeight, maxHeight);
+    const newWidth = Math.min(currentWhiteboardDrawingWidth, globalMaxWidth);
+    const newHeight = Math.min(currentWhiteboardDrawingHeight, maxHeight);
+    
+    console.log('Dimension changes:', {
+        oldWidth, oldHeight,
+        newWidth, newHeight,
+        widthChanged: oldWidth !== newWidth,
+        heightChanged: oldHeight !== newHeight
+    });
+    
+    currentWhiteboardDrawingWidth = newWidth;
+    currentWhiteboardDrawingHeight = newHeight;
 
     // Update canvas dimensions
     whiteboardCanvas.width = currentWhiteboardDrawingWidth;
@@ -1282,6 +1305,13 @@ function updateWhiteboardLayout() {
     
     wbRightHandle.style.top = `${canvasTop + (currentWhiteboardDrawingHeight - handleHeight) / 2}px`;
     wbRightHandle.style.left = `${canvasLeft + currentWhiteboardDrawingWidth}px`;
+    
+    console.log('Handle positions:', {
+        leftHandle: { top: wbLeftHandle.style.top, left: wbLeftHandle.style.left },
+        rightHandle: { top: wbRightHandle.style.top, left: wbRightHandle.style.left },
+        canvasPosition: { left: canvasLeft, top: canvasTop }
+    });
+    console.log('=== updateWhiteboardLayout complete ===');
 }
 
 function startWhiteboardResize(event) {
