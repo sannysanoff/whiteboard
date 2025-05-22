@@ -148,13 +148,13 @@ h1 {
 /* Bottom-left corner - tilted left */
 #handle-1::before {
     bottom: 2px;
-    left: 75%;
+    left: 90%;
     transform: translateX(-50%) rotate(30deg);
 }
 
 #handle-1::after {
     top: 0;
-    left: 75%;
+    left: 90%;
     transform: translateX(-50%);
 }
 
