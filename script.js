@@ -98,6 +98,20 @@ document.addEventListener('DOMContentLoaded', () => {
 // Populate camera selection dropdown
 async function populateCameraList() {
     try {
+        // First, try to get user media to ensure permissions are granted.
+        // This helps in getting more descriptive labels from enumerateDevices.
+        try {
+            const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            // Immediately stop the tracks as this stream is only for permission priming.
+            tempStream.getTracks().forEach(track => track.stop());
+        } catch (permissionError) {
+            // Log the error, but proceed to enumerateDevices.
+            // It might still work, or list devices without labels, or fail if permissions are strictly denied.
+            console.warn('Error requesting initial camera access for permissions (this is for improving device labels):', permissionError.name, permissionError.message);
+            // If permission is denied here, enumerateDevices might return less info or be empty.
+            // The main initWebcam call later will handle critical camera access errors and alert the user.
+        }
+
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
 
