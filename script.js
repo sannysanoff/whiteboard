@@ -139,11 +139,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // initWebcam will now be called first, and it will call populateCameraList after stream is active.
     initWebcam(); 
 
-    // Add resize listener to update handle positions
+    // Add resize listener to update handle positions and whiteboard size
     window.addEventListener('resize', () => {
         updateHtmlHandlesPositions(); // For setup view
         if (isWhiteboardMode && whiteboardCanvas && currentWhiteboardDrawingWidth && currentWhiteboardDrawingHeight) {
-            updateWhiteboardLayout(); // For whiteboard view
+            // Recalculate whiteboard size based on new container dimensions
+            const canvasContainer = document.getElementById('canvas-container');
+            if (canvasContainer) {
+                const containerSize = Math.min(canvasContainer.offsetWidth, canvasContainer.offsetHeight);
+                console.log('Window resized - new container size:', containerSize);
+                
+                // Update whiteboard dimensions to fill new container size
+                currentWhiteboardDrawingWidth = containerSize;
+                currentWhiteboardDrawingHeight = containerSize;
+                whiteboardCanvas.width = currentWhiteboardDrawingWidth;
+                whiteboardCanvas.height = currentWhiteboardDrawingHeight;
+                
+                // Update WebGL viewport and buffers
+                if (gl && program) {
+                    gl.viewport(0, 0, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
+                    gl.useProgram(program);
+                    gl.uniform2f(resolutionLocation, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
+                    
+                    // Update position buffer with new dimensions
+                    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                    setRectangle(gl, 0, 0, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
+                }
+            }
+            updateWhiteboardLayout(); // Update layout and handle positions
         }
     });
 
@@ -1210,8 +1233,8 @@ function handleZoomSlider() {
 // --- Whiteboard Resizing Functions ---
 
 function updateWhiteboardLayout() {
-    if (!whiteboardCanvas || !wbLeftHandle || !wbRightHandle || !currentWhiteboardDrawingWidth || !currentWhiteboardDrawingHeight) {
-        console.log('updateWhiteboardLayout: Missing required elements or dimensions');
+    if (!whiteboardCanvas || !wbLeftHandle || !wbRightHandle) {
+        console.log('updateWhiteboardLayout: Missing required elements');
         return;
     }
 
@@ -1260,30 +1283,22 @@ function updateWhiteboardLayout() {
     
     console.log('Calculated limits:', {maxWidth, maxHeight, windowWidth: window.innerWidth});
 
-    // Set initial dimensions if not already set
+    // Always use the maximum available space for whiteboard
     const oldWidth = currentWhiteboardDrawingWidth;
     const oldHeight = currentWhiteboardDrawingHeight;
     
-    if (!currentWhiteboardDrawingWidth || !currentWhiteboardDrawingHeight) {
-        console.log('Setting initial whiteboard dimensions');
-        currentWhiteboardDrawingWidth = maxWidth;
-        currentWhiteboardDrawingHeight = maxHeight;
-    }
-
-    // Clamp dimensions to container AND window size
-    const globalMaxWidth = Math.min(maxWidth, window.innerWidth);
-    const newWidth = Math.min(currentWhiteboardDrawingWidth, globalMaxWidth);
-    const newHeight = Math.min(currentWhiteboardDrawingHeight, maxHeight);
+    // Use container size to fill available space
+    const containerSize = Math.min(canvasContainer.offsetWidth, canvasContainer.offsetHeight);
+    currentWhiteboardDrawingWidth = containerSize;
+    currentWhiteboardDrawingHeight = containerSize;
     
     console.log('Dimension changes:', {
         oldWidth, oldHeight,
-        newWidth, newHeight,
-        widthChanged: oldWidth !== newWidth,
-        heightChanged: oldHeight !== newHeight
+        newWidth: currentWhiteboardDrawingWidth,
+        newHeight: currentWhiteboardDrawingHeight,
+        widthChanged: oldWidth !== currentWhiteboardDrawingWidth,
+        heightChanged: oldHeight !== currentWhiteboardDrawingHeight
     });
-    
-    currentWhiteboardDrawingWidth = newWidth;
-    currentWhiteboardDrawingHeight = newHeight;
 
     // Update canvas dimensions
     whiteboardCanvas.width = currentWhiteboardDrawingWidth;
