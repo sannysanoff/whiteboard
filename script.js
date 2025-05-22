@@ -1,4 +1,5 @@
 // Global variables
+// Global variables
 let webcam, overlayCanvas, whiteboardCanvas;
 let overlayCtx, whiteboardCtx;
 let videoWidth, videoHeight;
@@ -7,6 +8,21 @@ let isWhiteboardMode = false;
 let gl, program;
 let positionLocation, texCoordLocation;
 let matrixLocation, resolutionLocation;
+
+// Global constants for initial trapezoid ratios, derived from the CSS #trapezoid-overlay clip-path
+// These ensure the drawn trapezoid aligns with the visual guide.
+// The #trapezoid-overlay has width: 80% and is centered (10% margin on each side).
+// Its clip-path defines points relative to its own 80% width.
+// Bottom points: 0% and 100% of its 80% width -> effectively 10% and 90% of videoWidth.
+const INITIAL_BOTTOM_WIDTH_RATIO = 0.8; // (0.9 - 0.1)
+// Top points: 15% and 85% of its 80% width -> effectively (0.1 + 0.15*0.8) and (0.1 + 0.85*0.8) of videoWidth
+// -> 0.22 and 0.78 of videoWidth. Width = 0.78 - 0.22 = 0.56.
+const INITIAL_TOP_WIDTH_RATIO = 0.56;
+// The #trapezoid-overlay has height: 60% and bottom: 0. Top of div is at 40% of videoHeight.
+// Its clip-path's 0% height is the top of the div, 100% height is the bottom of the div.
+// So, the drawn trapezoid's bottom Y will be videoHeight, and its top Y will be 0.4 * videoHeight.
+// This means the effective height is 0.6 * videoHeight.
+const INITIAL_TRAPEZOID_HEIGHT_RATIO = 0.6;
 
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -69,18 +85,34 @@ async function initWebcam() {
     }
 }
 
-// Calculate trapezoid points based on video dimensions
-function calculateTrapezoidPoints() {
+// Calculate trapezoid points based on video dimensions and zoom factor
+function calculateTrapezoidPoints(zoomFactor = 1.0) {
     const width = videoWidth;
     const height = videoHeight;
-    
+
+    // Anchor the bottom of the trapezoid to the bottom of the canvas
+    const bottomY = height;
+
+    // Calculate current dimensions based on initial ratios and zoom factor
+    const currentTrapezoidHeight = INITIAL_TRAPEZOID_HEIGHT_RATIO * height * zoomFactor;
+    const currentBottomWidth = INITIAL_BOTTOM_WIDTH_RATIO * width * zoomFactor;
+    const currentTopWidth = INITIAL_TOP_WIDTH_RATIO * width * zoomFactor;
+
+    // Ensure trapezoid doesn't go out of bounds (top Y should not be negative)
+    const topY = Math.max(0, bottomY - currentTrapezoidHeight);
+
+    // Calculate horizontal positions, centered
+    const bottomLeftX = (width - currentBottomWidth) / 2;
+    const bottomRightX = (width + currentBottomWidth) / 2;
+    const topLeftX = (width - currentTopWidth) / 2;
+    const topRightX = (width + currentTopWidth) / 2;
+
     // Define trapezoid points (clockwise from bottom-left)
-    // Format: [x, y]
     trapezoidPoints = [
-        [width * 0.15, height * 0.8],  // Bottom-left
-        [width * 0.85, height * 0.8],  // Bottom-right
-        [width * 0.7, height * 0.2],   // Top-right
-        [width * 0.3, height * 0.2]    // Top-left
+        [bottomLeftX, bottomY],  // Bottom-left
+        [bottomRightX, bottomY], // Bottom-right
+        [topRightX, topY],       // Top-right
+        [topLeftX, topY]         // Top-left
     ];
 }
 
@@ -499,20 +531,10 @@ function adjustZoom(delta) {
 // Handle zoom slider changes
 function handleZoomSlider() {
     const zoomValue = document.getElementById('zoom-slider').value;
-    // Implement zoom functionality here
-    console.log('Zoom level:', zoomValue);
-    
-    // Update trapezoid size based on zoom level
-    // This is a simplified implementation
-    const zoomFactor = zoomValue / 50;  // Convert to a factor around 1.0
-    calculateTrapezoidPoints();
-    
-    // Scale trapezoid points based on zoom factor
-    const centerX = videoWidth / 2;
-    const centerY = videoHeight / 2;
-    
-    trapezoidPoints = trapezoidPoints.map(point => [
-        centerX + (point[0] - centerX) * zoomFactor,
-        centerY + (point[1] - centerY) * zoomFactor
-    ]);
+    // Convert zoomValue (1-100) to a zoomFactor (e.g., 0.5 to 2.0)
+    // 50 is no zoom (factor 1.0)
+    const zoomFactor = zoomValue / 50;
+
+    // Recalculate trapezoid points with the new zoom factor, keeping the bottom anchored
+    calculateTrapezoidPoints(zoomFactor);
 }
