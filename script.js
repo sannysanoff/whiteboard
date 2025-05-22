@@ -741,9 +741,11 @@ function handleTrapezoidInteractionMove(event) {
         magnifierDiv.style.top = `${handleTop + (handleHeight / 2) - magnifierHeight - 20}px`;
 
         // Draw magnified content
-        // canvasX and canvasY are the center of the handle in video coordinates
-        const videoFeedX = canvasX; // Already in video's intrinsic coordinate system
-        const videoFeedY = canvasY;
+        // Get the current trapezoid point position (before it gets updated)
+        const actualTrapezoidPointIndex = trapezoidPointIndices[handleIdx];
+        const currentTrapezoidPoint = trapezoidPoints[actualTrapezoidPointIndex];
+        const videoFeedX = currentTrapezoidPoint[0]; // Current position in video coordinates
+        const videoFeedY = currentTrapezoidPoint[1]; // Current position in video coordinates
 
         const sourceSize = 50; // 50x50 pixels from video
         const destSize = 100;  // Drawn as 100x100 on magnifier canvas
