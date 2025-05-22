@@ -510,22 +510,14 @@ function calculateTrapezoidPoints(zoomFactor = 1.0) {
     // Try to load saved trapezoid points first
     const savedPoints = loadTrapezoidPoints();
     if (savedPoints && zoomFactor === 1.0) {
-        // Scale saved points to current video dimensions
-        const savedWidth = savedPoints[1][0] - savedPoints[0][0] + savedPoints[2][0] - savedPoints[3][0];
-        const savedHeight = Math.max(...savedPoints.map(p => p[1])) - Math.min(...savedPoints.map(p => p[1]));
+        // Saved points are already in absolute video coordinates, just use them directly
+        trapezoidPoints = savedPoints;
         
-        if (savedWidth > 0 && savedHeight > 0) {
-            trapezoidPoints = savedPoints.map(point => [
-                (point[0] / savedWidth) * width,
-                (point[1] / savedHeight) * height
-            ]);
-            
-            // Update the perspective matrix whenever trapezoid points change
-            updatePerspectiveMatrix();
-            // Update HTML handle positions
-            updateHtmlHandlesPositions();
-            return;
-        }
+        // Update the perspective matrix whenever trapezoid points change
+        updatePerspectiveMatrix();
+        // Update HTML handle positions
+        updateHtmlHandlesPositions();
+        return;
     }
 
     // Fallback to default calculation
