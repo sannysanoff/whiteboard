@@ -817,7 +817,7 @@ function handleTrapezoidInteractionMove(event) {
             const sy = videoFeedY - sourceSize / 2;
 
             // Debug log: print coordinates in one line
-            console.log(`Mouse: canvas(${containerX.toFixed(1)},${containerY.toFixed(1)}) webcam(${magnifierVideoX.toFixed(1)},${magnifierVideoY.toFixed(1)}) | Minimap: canvas(${(sx + sourceSize/2).toFixed(1)},${(sy + sourceSize/2).toFixed(1)}) webcam(${videoFeedX.toFixed(1)},${videoFeedY.toFixed(1)}) | Canvas max: (${webcam.videoWidth},${webcam.videoHeight})`);
+            console.log(`Mouse: canvas(${containerX.toFixed(1)},${containerY.toFixed(1)}) webcam(${magnifierVideoX.toFixed(1)},${magnifierVideoY.toFixed(1)}) | Minimap: canvas(${(sx + sourceSize/2).toFixed(1)},${(sy + sourceSize/2).toFixed(1)}) webcam(${videoFeedX.toFixed(1)},${videoFeedY.toFixed(1)}) | Canvas max: (${webcam.videoWidth},${webcam.videoHeight}) | Node: y=${currentCornerY.toFixed(1)} Ymag=${centerY.toFixed(1)} | Prev: y=${prevCornerVideoY.toFixed(1)} Ymag=${prevMagnifierY.toFixed(1)} | Next: y=${nextCornerVideoY.toFixed(1)} Ymag=${nextMagnifierY.toFixed(1)}`);
 
             magnifierCtx.clearRect(0, 0, destSize, destSize);
             magnifierCtx.drawImage(webcam, 
