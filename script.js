@@ -1280,10 +1280,10 @@ function doWhiteboardResize(event) {
         newWidth = wbResizeInitialWidth + 2 * deltaX;
     }
 
-    // Clamp newWidth to a minimum (e.g., 100px) and maximum (e.g., container width)
+    // Clamp newWidth to a minimum and maximum
     const canvasContainer = document.getElementById('canvas-container');
-    const minWidth = 100;
-    const maxWidth = canvasContainer.clientWidth - 20; // Ensure some space for handles visually
+    const minWidth = 300; // More practical minimum size
+    const maxWidth = Math.min(canvasContainer.clientWidth, window.innerWidth);
     
     newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
 
