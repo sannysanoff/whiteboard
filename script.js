@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     overlayCanvas = document.getElementById('overlay-canvas');
     whiteboardCanvas = document.getElementById('whiteboard-canvas');
     overlayCtx = overlayCanvas.getContext('2d');
-    whiteboardCtx = whiteboardCanvas.getContext('2d');
+    // whiteboardCtx is no longer initialized here, as whiteboardCanvas will be used for WebGL.
     
     // Set up event listeners
     document.getElementById('start-btn').addEventListener('click', startWhiteboardMode);
@@ -214,7 +214,8 @@ function initWebGL() {
     }
 
     // Get WebGL context
-    gl = whiteboardCanvas.getContext('webgl') || whiteboardCanvas.getContext('experimental-webgl');
+    gl = whiteboardCanvas.getContext('webgl', { preserveDrawingBuffer: true }) || 
+         whiteboardCanvas.getContext('experimental-webgl', { preserveDrawingBuffer: true });
     
     if (!gl) {
         console.error('WebGL not supported. getContext() returned null.');
@@ -369,30 +370,39 @@ function processVideoFrame() {
     // Draw the rectangle
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    // --- Additional render: Draw a small rotating triangle on the 2D context ---
-    whiteboardCtx.save();
-    
-    // Position in top-right corner, with some padding
-    const triangleSize = 20; // Half-side length for equilateral triangle
-    const padding = 30;
-    const triangleX = whiteboardCanvas.width - padding;
-    const triangleY = padding;
+    // --- Additional render: Draw a small rotating triangle (Temporarily Commented Out) ---
+    // The following code for drawing the triangle used whiteboardCtx, which is no longer
+    // initialized for whiteboardCanvas as it's now dedicated to WebGL.
+    // To re-enable the triangle, it would need to be drawn on a separate 2D overlay canvas
+    // or rendered using WebGL.
+    /*
+    if (whiteboardCtx) { // Guard in case it was initialized elsewhere, though it shouldn't be
+        whiteboardCtx.save();
+        
+        // Position in top-right corner, with some padding
+        const triangleSize = 20; // Half-side length for equilateral triangle
+        const padding = 30;
+        const triangleX = whiteboardCanvas.width - padding;
+        const triangleY = padding;
 
-    whiteboardCtx.translate(triangleX, triangleY);
-    whiteboardCtx.rotate(triangleAngle);
-    
-    whiteboardCtx.beginPath();
-    // Equilateral triangle points relative to (0,0) after translation
-    whiteboardCtx.moveTo(0, -triangleSize); // Top point
-    whiteboardCtx.lineTo(triangleSize * Math.sqrt(3) / 2, triangleSize / 2); // Bottom-right point
-    whiteboardCtx.lineTo(-triangleSize * Math.sqrt(3) / 2, triangleSize / 2); // Bottom-left point
-    whiteboardCtx.closePath();
-    
-    whiteboardCtx.fillStyle = 'red';
-    whiteboardCtx.fill();
-    whiteboardCtx.restore();
+        whiteboardCtx.translate(triangleX, triangleY);
+        whiteboardCtx.rotate(triangleAngle);
+        
+        whiteboardCtx.beginPath();
+        // Equilateral triangle points relative to (0,0) after translation
+        whiteboardCtx.moveTo(0, -triangleSize); // Top point
+        whiteboardCtx.lineTo(triangleSize * Math.sqrt(3) / 2, triangleSize / 2); // Bottom-right point
+        whiteboardCtx.lineTo(-triangleSize * Math.sqrt(3) / 2, triangleSize / 2); // Bottom-left point
+        whiteboardCtx.closePath();
+        
+        whiteboardCtx.fillStyle = 'red';
+        whiteboardCtx.fill();
+        whiteboardCtx.restore();
 
-    triangleAngle += 0.05; // Increment rotation angle for next frame
+        triangleAngle += 0.05; // Increment rotation angle for next frame
+    }
+    */
+    triangleAngle += 0.05; // Keep angle updating if triangle is re-enabled later
 }
 
 // Calculate perspective transformation matrix
@@ -581,7 +591,16 @@ function captureAndProcessFrame() {
 
 // Clear the whiteboard
 function clearWhiteboard() {
-    whiteboardCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+    // whiteboardCanvas is now a WebGL canvas.
+    // Clearing it means clearing the WebGL drawing buffer.
+    if (gl) {
+        gl.clearColor(1, 1, 1, 1); // Set clear color to white (or any desired color)
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        // Note: If drawLoop is running, this clear will be immediate, 
+        // and the next frame from the camera will be drawn.
+        // For a persistent clear, you might need to stop the video processing loop
+        // or draw a static blank frame.
+    }
 }
 
 // Save the whiteboard as an image
