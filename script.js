@@ -461,15 +461,94 @@ function startWhiteboardMode() {
     }, 30);
     
     isWhiteboardMode = true;
-
-    // Initialize WebGL if not already done
-    if (!isWebGLInitialized) {
-        initWebGL();
-        isWebGLInitialized = true;
-    }
     
-    // Capture the current frame for processing
-    captureAndProcessFrame();
+    // Capture the current frame for processing (moved inside fadeIn completion)
+}
+
+// Switch back to setup mode
+function backToSetupMode() {
+    // Animate transition
+    const setupView = document.getElementById('setup-view');
+    const whiteboardView = document.getElementById('whiteboard-view');
+    
+    whiteboardView.style.opacity = '1';
+    setupView.style.display = 'flex';
+    setupView.style.opacity = '0';
+    
+    // Fade out whiteboard view
+    let opacity = 1;
+    const fadeOut = setInterval(() => {
+        opacity -= 0.1;
+        whiteboardView.style.opacity = opacity;
+        
+        if (opacity <= 0) {
+            clearInterval(fadeOut);
+            whiteboardView.style.display = 'none';
+            
+            // Fade in setup view
+            let setupOpacity = 0;
+            const fadeIn = setInterval(() => {
+                setupOpacity += 0.1;
+                setupView.style.opacity = setupOpacity;
+                
+                if (setupOpacity >= 1) {
+                    clearInterval(fadeIn);
+                    setupView.classList.add('active');
+                }
+            }, 30);
+        }
+    }, 30);
+    
+    isWhiteboardMode = false;
+}
+
+// Capture and process the current frame
+function captureAndProcessFrame() {
+    // Create a temporary canvas to capture the current frame
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = videoWidth;
+    tempCanvas.height = videoHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Draw the current video frame to the temporary canvas
+    tempCtx.drawImage(webcam, 0, 0, videoWidth, videoHeight);
+    
+    // Use the captured frame for perspective correction
+    const imageData = tempCtx.getImageData(0, 0, videoWidth, videoHeight);
+    
+    // Update the texture with the captured frame
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tempCanvas);
+}
+
+// Clear the whiteboard
+function clearWhiteboard() {
+    whiteboardCtx.clearRect(0, 0, whiteboardCanvas.width, whiteboardCanvas.height);
+}
+
+// Save the whiteboard as an image
+function saveWhiteboard() {
+    const link = document.createElement('a');
+    link.download = 'whiteboard-' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.png';
+    link.href = whiteboardCanvas.toDataURL();
+    link.click();
+}
+
+// Adjust zoom level
+function adjustZoom(delta) {
+    const slider = document.getElementById('zoom-slider');
+    slider.value = parseInt(slider.value) + delta;
+    handleZoomSlider();
+}
+
+// Handle zoom slider changes
+function handleZoomSlider() {
+    const zoomValue = document.getElementById('zoom-slider').value;
+    // Convert zoomValue (1-100) to a zoomFactor (e.g., 0.5 to 2.0)
+    // 50 is no zoom (factor 1.0)
+    const zoomFactor = zoomValue / 50;
+
+    // Recalculate trapezoid points with the new zoom factor, keeping the bottom anchored
+    calculateTrapezoidPoints(zoomFactor);
 }
 
 // Switch back to setup mode
