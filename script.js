@@ -1355,9 +1355,7 @@ function startWhiteboardMode() {
                     }
                     
                     // Recompute perspective matrix after aspect ratio restoration
-                    updatePerspectiveMatrix();
-                    
-                    updateWhiteboardLayout();
+
                     if (!isWebGLInitialized) {
                         console.log('Initializing WebGL for the first time');
                         initWebGL();
@@ -1366,9 +1364,12 @@ function startWhiteboardMode() {
                         console.log('WebGL already initialized');
                     }
                     updateWhiteboardLayout(); // Position and style canvas and handles
-                    
+
                     // Trigger flash zoom animation on handles
                     animateHandlesFlashZoom();
+                    updateWhiteboardLayout(); // Position and style canvas and handles
+                    updatePerspectiveMatrix();
+                    updateGL()
                 }
             }, 30);
         }
@@ -1673,6 +1674,16 @@ function startWhiteboardResize(event) {
     event.target.style.borderColor = 'rgba(0, 100, 220, 1)';    // Solid border for drag
 }
 
+function updateGL() {
+    gl.viewport(0, 0, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
+    gl.useProgram(program); // Ensure program is active for uniform setting
+    gl.uniform2f(resolutionLocation, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
+
+    // Re-set the rectangle for drawing with new width but same height
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); // Ensure correct buffer is bound
+    setRectangle(gl, 0, 0, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
+}
+
 function doWhiteboardResize(event) {
     if (!isResizingWhiteboard) return;
     event.preventDefault();
@@ -1710,13 +1721,7 @@ function doWhiteboardResize(event) {
 
         // Update WebGL viewport and uniforms
         if (gl && program) { // Check if WebGL is initialized
-            gl.viewport(0, 0, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
-            gl.useProgram(program); // Ensure program is active for uniform setting
-            gl.uniform2f(resolutionLocation, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
-            
-            // Re-set the rectangle for drawing with new width but same height
-            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); // Ensure correct buffer is bound
-            setRectangle(gl, 0, 0, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
+            updateGL();
         }
         
         // Update handle positions manually instead of calling updateWhiteboardLayout
