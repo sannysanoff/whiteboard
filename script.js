@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('zoom-slider').addEventListener('input', handleZoomSlider);
 
     // Add event listeners for dragging trapezoid corners
-    overlayCanvas.addEventListener('mousedown', handleTrapezoidInteractionStart);
+    // overlayCanvas.addEventListener('mousedown', handleTrapezoidInteractionStart); // Removed to prevent dragging canvas itself
     document.addEventListener('mousemove', handleTrapezoidInteractionMove);
     document.addEventListener('mouseup', handleTrapezoidInteractionEnd);
     // Touch events for document are for moving/ending drag
@@ -119,6 +119,9 @@ async function initWebcam() {
             // Calculate trapezoid points based on video dimensions
             calculateTrapezoidPoints(); // This will also call updateHtmlHandlesPositions
             updatePerspectiveMatrix(); // Initial calculation of the perspective matrix
+            if (!isWhiteboardMode) { // If in setup mode
+                drawTrapezoid(); // Ensure handles are styled (visible) and trapezoid drawn correctly initially
+            }
             
             // Start drawing loop
             requestAnimationFrame(drawLoop);
