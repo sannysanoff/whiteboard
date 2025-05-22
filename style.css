@@ -127,7 +127,7 @@ h1 {
     transform: translateX(-50%);
     width: 80%;
     height: 60%;
-    border: 3px solid white;
+    border: none;
     border-radius: 5px;
     pointer-events: none;
     box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.5);

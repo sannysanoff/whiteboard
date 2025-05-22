@@ -379,6 +379,10 @@ async function initWebcam(deviceId = null) {
             updatePerspectiveMatrix(); // Initial calculation of the perspective matrix
             if (!isWhiteboardMode) { // If in setup mode
                 drawTrapezoid(); // Ensure handles are styled (visible) and trapezoid drawn correctly initially
+                // Ensure handles are visible immediately after initialization
+                htmlHandles.forEach(handle => {
+                    if (handle) handle.style.display = 'block';
+                });
             }
             
             // Start drawing loop
@@ -536,25 +540,29 @@ function drawTrapezoid() {
     overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
     overlayCtx.restore();
     
-    // Draw trapezoid outline
-    overlayCtx.beginPath();
-    overlayCtx.moveTo(trapezoidPoints[0][0], trapezoidPoints[0][1]);
-    
-    for (let i = 1; i < trapezoidPoints.length; i++) {
-        overlayCtx.lineTo(trapezoidPoints[i][0], trapezoidPoints[i][1]);
-    }
-    
-    overlayCtx.closePath();
-    overlayCtx.strokeStyle = 'white';
-    overlayCtx.lineWidth = 3;
-    overlayCtx.stroke();
+    // Don't draw trapezoid outline - remove the horizontal lines
+    // overlayCtx.beginPath();
+    // overlayCtx.moveTo(trapezoidPoints[0][0], trapezoidPoints[0][1]);
+    // 
+    // for (let i = 1; i < trapezoidPoints.length; i++) {
+    //     overlayCtx.lineTo(trapezoidPoints[i][0], trapezoidPoints[i][1]);
+    // }
+    // 
+    // overlayCtx.closePath();
+    // overlayCtx.strokeStyle = 'white';
+    // overlayCtx.lineWidth = 3;
+    // overlayCtx.stroke();
 
-    // HTML handles are now used, so no need to draw them on canvas.
-    // Show/hide HTML handles based on mode
-    const displayStyle = isWhiteboardMode ? 'none' : 'block';
-    htmlHandles.forEach(handle => {
-        if (handle) handle.style.display = displayStyle;
-    });
+    // Ensure HTML handles are always visible in setup mode
+    if (!isWhiteboardMode) {
+        htmlHandles.forEach(handle => {
+            if (handle) handle.style.display = 'block';
+        });
+    } else {
+        htmlHandles.forEach(handle => {
+            if (handle) handle.style.display = 'none';
+        });
+    }
 }
 
 // Helper function to get event coordinates relative to the canvas
