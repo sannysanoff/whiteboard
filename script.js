@@ -726,26 +726,17 @@ function handleTrapezoidInteractionMove(event) {
 
     // Update Magnifier
     if (magnifierDiv && magnifierCtx && draggedHtmlHandle && webcam.readyState >= webcam.HAVE_CURRENT_DATA) {
-        // Position the magnifier div
-        // draggedHtmlHandle.style.left and .top are strings like "123.45px"
-        const handleLeft = parseFloat(draggedHtmlHandle.style.left);
-        const handleTop = parseFloat(draggedHtmlHandle.style.top);
-        const handleWidth = draggedHtmlHandle.offsetWidth; // Should be 16px
-        const handleHeight = draggedHtmlHandle.offsetHeight; // Should be 16px
-
+        // Position the magnifier div near the cursor
         const magnifierWidth = 100;
         const magnifierHeight = 100;
 
-        // Center magnifier above the handle's center, with a 20px gap
-        magnifierDiv.style.left = `${handleLeft + (handleWidth / 2) - (magnifierWidth / 2)}px`;
-        magnifierDiv.style.top = `${handleTop + (handleHeight / 2) - magnifierHeight - 20}px`;
+        // Position magnifier above the cursor with a 20px gap
+        magnifierDiv.style.left = `${containerX - (magnifierWidth / 2)}px`;
+        magnifierDiv.style.top = `${containerY - magnifierHeight - 20}px`;
 
-        // Draw magnified content
-        // Get the current trapezoid point position (before it gets updated)
-        const actualTrapezoidPointIndex = trapezoidPointIndices[handleIdx];
-        const currentTrapezoidPoint = trapezoidPoints[actualTrapezoidPointIndex];
-        const videoFeedX = currentTrapezoidPoint[0]; // Current position in video coordinates
-        const videoFeedY = currentTrapezoidPoint[1]; // Current position in video coordinates
+        // Draw magnified content from the cursor position in video coordinates
+        const videoFeedX = canvasX; // Cursor position in video coordinates
+        const videoFeedY = canvasY; // Cursor position in video coordinates
 
         const sourceSize = 50; // 50x50 pixels from video
         const destSize = 100;  // Drawn as 100x100 on magnifier canvas
