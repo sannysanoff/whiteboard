@@ -13,6 +13,10 @@ let currentSrcPoints = null; // To store the source points for logging
 let positionBuffer = null; // WebGL buffer for vertex positions
 let texCoordBuffer = null; // WebGL buffer for texture coordinates
 
+let isVideoHoldActive = false;
+let heldVideoFrameCanvas = null;
+let holdVideoButton = null;
+
 // Persistent storage keys
 const STORAGE_KEYS = {
     TRAPEZOID_POINTS: 'whiteboardCamera_trapezoidPoints',
@@ -94,8 +98,11 @@ document.addEventListener('DOMContentLoaded', () => {
     whiteboardCanvas = document.getElementById('whiteboard-canvas');
     magnifierDiv = document.getElementById('magnifier');
     magnifierCanvas = document.getElementById('magnifier-canvas');
+    holdVideoButton = document.getElementById('hold-video-btn');
     
     overlayCtx = overlayCanvas.getContext('2d');
+    heldVideoFrameCanvas = document.createElement('canvas'); // Initialize, dimensions set later
+
     if (magnifierCanvas) { // Ensure it exists before getting context
         magnifierCtx = magnifierCanvas.getContext('2d');
         magnifierCanvas.width = 100; // Set drawing surface size
@@ -111,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('minus-btn').addEventListener('click', () => adjustZoom(-5));
     document.getElementById('plus-btn').addEventListener('click', () => adjustZoom(5));
     document.getElementById('zoom-slider').addEventListener('input', handleZoomSlider);
+    holdVideoButton.addEventListener('click', toggleVideoHold);
 
     // Add event listeners for dragging trapezoid corners
     // overlayCanvas.addEventListener('mousedown', handleTrapezoidInteractionStart); // Removed to prevent dragging canvas itself
@@ -239,6 +247,12 @@ async function initWebcam(deviceId = null) {
             // Update videoWidth/height variables to match displayed size
             videoWidth = containerWidth;
             videoHeight = containerWidth / aspectRatio;
+
+            // Set dimensions for heldVideoFrameCanvas based on actual video stream dimensions
+            if (heldVideoFrameCanvas) {
+                heldVideoFrameCanvas.width = webcam.videoWidth;
+                heldVideoFrameCanvas.height = webcam.videoHeight;
+            }
             
             // --- Whiteboard Canvas initial drawing surface size ---
             const canvasContainer = document.getElementById('canvas-container');
@@ -513,8 +527,15 @@ function updatePerspectiveMatrix() {
 // Main drawing loop
 function drawLoop() {
     if (!isWhiteboardMode) {
-        // Draw video frame to overlay canvas
         overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+        if (isVideoHoldActive && heldVideoFrameCanvas && heldVideoFrameCanvas.width > 0) {
+            // Draw the held frame onto the overlay canvas, scaled to fit.
+            // The webcam element is hidden, so overlayCanvas needs to draw the background.
+            overlayCtx.drawImage(heldVideoFrameCanvas, 0, 0, heldVideoFrameCanvas.width, heldVideoFrameCanvas.height, 0, 0, overlayCanvas.width, overlayCanvas.height);
+        }
+        // If not holding, or held frame not ready, the live webcam <video> element is visible underneath.
+        // overlayCtx is just for the trapezoid lines in that case.
         
         // Draw trapezoid outline
         drawTrapezoid();
@@ -720,7 +741,12 @@ function handleTrapezoidInteractionMove(event) {
     updateHtmlHandlesPositions(); // This updates the draggedHtmlHandle's style.left/top
 
     // Update Magnifier
-    if (magnifierDiv && magnifierCtx && draggedHtmlHandle && webcam.readyState >= webcam.HAVE_CURRENT_DATA) {
+    const videoSourceForMagnifier = (isVideoHoldActive && heldVideoFrameCanvas && heldVideoFrameCanvas.width > 0) ? heldVideoFrameCanvas : webcam;
+    const magnifierReady = magnifierDiv && magnifierCtx && draggedHtmlHandle && 
+                           ( (isVideoHoldActive && heldVideoFrameCanvas && heldVideoFrameCanvas.width > 0) || 
+                             (!isVideoHoldActive && webcam.readyState >= webcam.HAVE_CURRENT_DATA) );
+
+    if (magnifierReady) {
         // Position the magnifier div near the cursor
         const magnifierWidth = 100;
         const magnifierHeight = 100;
@@ -742,7 +768,7 @@ function handleTrapezoidInteractionMove(event) {
             const sy = videoFeedY - sourceSize / 2;
 
             magnifierCtx.clearRect(0, 0, destSize, destSize);
-            magnifierCtx.drawImage(webcam, 
+            magnifierCtx.drawImage(videoSourceForMagnifier, 
                                    sx, sy, sourceSize, sourceSize, 
                                    0, 0, destSize, destSize);
             
@@ -1762,6 +1788,44 @@ function initializeFlipper() {
     
     // Start automatic flipping
     startFlipperTimer();
+}
+
+function toggleVideoHold() {
+    isVideoHoldActive = !isVideoHoldActive;
+
+    if (isVideoHoldActive) {
+        holdVideoButton.textContent = 'Unhold Video';
+        // Capture current frame
+        if (webcam && webcam.readyState >= webcam.HAVE_CURRENT_DATA && heldVideoFrameCanvas) {
+            // Ensure heldVideoFrameCanvas has correct dimensions from the actual video stream
+            if (heldVideoFrameCanvas.width !== webcam.videoWidth || heldVideoFrameCanvas.height !== webcam.videoHeight) {
+                heldVideoFrameCanvas.width = webcam.videoWidth;
+                heldVideoFrameCanvas.height = webcam.videoHeight;
+            }
+            // Ensure dimensions are valid before drawing
+            if (webcam.videoWidth === 0 || webcam.videoHeight === 0) {
+                console.warn("Cannot hold video: webcam dimensions not ready or zero.");
+                isVideoHoldActive = false; // Revert state
+                holdVideoButton.textContent = 'Hold Video';
+                webcam.style.display = 'block'; // Ensure live video is visible
+                return;
+            }
+            const ctx = heldVideoFrameCanvas.getContext('2d');
+            ctx.drawImage(webcam, 0, 0, webcam.videoWidth, webcam.videoHeight);
+            webcam.style.display = 'none'; // Hide live video
+        } else {
+            // Could not capture (e.g., webcam not ready)
+            console.warn("Cannot hold video: webcam not ready or canvas issue.");
+            isVideoHoldActive = false; // Revert state
+            holdVideoButton.textContent = 'Hold Video';
+            if(webcam) webcam.style.display = 'block'; // Ensure live video is visible if webcam element exists
+            return;
+        }
+    } else {
+        holdVideoButton.textContent = 'Hold Video';
+        if(webcam) webcam.style.display = 'block'; // Show live video
+    }
+    // Request a redraw to update the canvas if needed (drawLoop will handle it)
 }
 
 function goToSlide(slideIndex) {
