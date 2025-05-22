@@ -458,28 +458,6 @@ function calculateTrapezoidPoints(zoomFactor = 1.0) {
     updateHtmlHandlesPositions();
 }
 
-// Define handle angles in radians for each handle
-// The angle determines the direction from the handle's circle (base) towards the trapezoid corner (tip).
-// The needle element itself is rotated by this angle.
-// Labels are swapped diagonally due to upside-down camera view.
-function getHandleAngle(handleIndex) {
-    switch(handleIndex) {
-        // htmlHandles[0] is visually Bottom-Right, but represents paper's Top-Left (UL). Needle points like UL.
-        case 0: return Math.PI / 2;  // 90 degrees (points right, like original UL)
-
-        // htmlHandles[1] is visually Bottom-Left, but represents paper's Top-Right (UR). Needle points like UR.
-        case 1: return -Math.PI / 2; // -90 degrees (points left, like original UR)
-
-        // htmlHandles[2] is visually Top-Left, but represents paper's Bottom-Right (BR). Needle points like BR.
-        case 2: return -30 * (Math.PI / 180); // -30 degrees (points left-up, like original BR)
-
-        // htmlHandles[3] is visually Top-Right, but represents paper's Bottom-Left (BL). Needle points like BL.
-        case 3: return 30 * (Math.PI / 180);  // 30 degrees (points right-up, like original BL)
-        default:
-            return 0; // Default, should not happen
-    }
-}
-
 // Update positions of HTML handles based on trapezoidPoints
 function updateHtmlHandlesPositions() {
     if (!videoWidth || !videoHeight || htmlHandles.length === 0) return;
@@ -497,57 +475,44 @@ function updateHtmlHandlesPositions() {
 
         if (handleEl && canvasP) {
             // Convert canvas coordinates to CSS pixel values relative to the container
-            let needleTipX = (canvasP[0] / videoWidth) * containerRect.width;
-            let needleTipY = (canvasP[1] / videoHeight) * containerRect.height;
+            // This will be the target center for our handle's circle.
+            let targetCenterX = (canvasP[0] / videoWidth) * containerRect.width;
+            let targetCenterY = (canvasP[1] / videoHeight) * containerRect.height;
 
-            // Apply adjustments to the target tip position itself
+            // Apply adjustments to the target center position.
+            // These adjustments were originally for the needle tip, but we'll keep them
+            // to ensure the circle center aligns where the tip was intended.
             // i is the htmlHandles index:
             // 0: Visual Bottom-Right handle, "UL" label
             // 1: Visual Bottom-Left handle, "UR" label
             // 2: Visual Top-Left handle, "BR" label
             // 3: Visual Top-Right handle, "BL" label
-            if (i === 0) { // Visual Bottom-Right ("UL") - Tip observed ~2px too right, so target tip needs to be 2px left
-                needleTipX -= 2; 
-            } else if (i === 1) { // Visual Bottom-Left ("UR") - Tip observed ~2px too left, so target tip needs to be 2px right
-                needleTipX += 2;
-            } else if (i === 2) { // Visual Top-Left ("BR") - Tip observed ~4px too right, so target tip needs to be 4px left
-                needleTipX -= 4;
-            } else if (i === 3) { // Visual Top-Right ("BL") - Tip observed ~4px too left, so target tip needs to be 4px right
-                needleTipX += 4;
+            if (i === 0) { // Visual Bottom-Right ("UL")
+                targetCenterX -= 2; 
+            } else if (i === 1) { // Visual Bottom-Left ("UR")
+                targetCenterX += 2;
+            } else if (i === 2) { // Visual Top-Left ("BR")
+                targetCenterX -= 4;
+            } else if (i === 3) { // Visual Top-Right ("BL")
+                targetCenterX += 4;
             }
             
-            // Get angle for this handle type
-            const angle = getHandleAngle(i);
+            // Position the handle element so its center aligns with (targetCenterX, targetCenterY).
+            // The draggable-handle is 16x16px. Its center is at (8px, 8px) from its top-left.
+            handleEl.style.left = `${targetCenterX - 8}px`; 
+            handleEl.style.top = `${targetCenterY - 8}px`;
             
-            // Calculate needle length
-            const needleLength = 40;
-            
-            // Calculate needle base position using angle and (potentially adjusted) tip coordinates
-            const needleBaseX = needleTipX - Math.sin(angle) * needleLength;
-            const needleBaseY = needleTipY - Math.cos(angle) * needleLength;
-            
-            // Position the handle element.
-            // needleBaseX/Y is the coordinate of the needle's pivot point.
-            // The needle pivots at (8px, 0px) local to the handleEl.
-            handleEl.style.left = `${needleBaseX - 8}px`; 
-            handleEl.style.top = `${needleBaseY}px`;
-            
-            // Position and rotate the needle element
-            const needleEl = handleEl.querySelector('.needle');
-            if (needleEl) {
-                needleEl.style.left = '6px'; // Center within 16px handle
-                needleEl.style.top = '0px';
-                needleEl.style.transform = `rotate(${angle}rad)`;
-            }
-            
-            // Position the circle element
+            // The circle element is positioned at (2px, 2px) within the draggable-handle.
+            // Its CSS width/height is 12px. With a 2px border, its visual size is 16px.
+            // So it visually fills the draggable-handle. No specific JS positioning needed for it here.
             const circleEl = handleEl.querySelector('.handle-circle');
             if (circleEl) {
-                circleEl.style.left = '2px'; // Center within 16px handle
+                // Ensure default position if it was ever changed by mistake
+                circleEl.style.left = '2px'; 
                 circleEl.style.top = '2px';
             }
             
-            // Position the label based on handle type
+            // Position the label based on handle type (relative to the handleEl, which is now centered on the point)
             const labelEl = handleEl.querySelector('.corner-label');
             if (labelEl) {
                 // Position labels based on visual handle index (i), considering the diagonal swap.

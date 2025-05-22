@@ -114,17 +114,6 @@ h1 {
     cursor: grabbing;
 }
 
-/* Needle element for handles */
-.needle {
-    position: absolute;
-    background: #ff4444;
-    width: 4px;
-    height: 40px;
-    transform-origin: center 0; /* Pivot at base of needle */
-    pointer-events: none;
-    z-index: 12;
-}
-
 /* Circle element for handles */
 .handle-circle {
     position: absolute;
@@ -135,10 +124,6 @@ h1 {
     border-radius: 50%;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     z-index: 11;
-}
-
-.draggable-handle:active .needle {
-    background-color: #cc0000;
 }
 
 .draggable-handle:active .handle-circle {
