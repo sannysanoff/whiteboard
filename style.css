@@ -73,6 +73,10 @@ h1 {
     background-color: white; /* Ensure consistent background */
 }
 
+#refresh-cameras-btn:hover {
+    background-color: #dcdcdc;
+}
+
 #camera-container {
     position: relative;
     width: 100%;
