@@ -361,9 +361,46 @@ function processVideoFrame() {
     gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
     
     // Calculate perspective transformation matrix
-    const matrix = calculatePerspectiveMatrix();
-    gl.uniformMatrix3fv(matrixLocation, false, matrix);
+    const transformData = calculatePerspectiveMatrix();
+    const matrix = transformData.matrix;
+    const srcPointsForLogging = transformData.srcPoints; // For verification logging
+
+    // Set the matrix uniform. Note: 'true' for transpose because 'matrix' is row-major.
+    gl.uniformMatrix3fv(matrixLocation, true, matrix);
+
+    // --- Verification Logging (runs every frame, consider adding a flag to log once) ---
+    const dstCenter = [0.5, 0.5]; // Center of the destination (output) canvas
     
+    // Manually multiply: H * [dstCenter[0], dstCenter[1], 1.0]^T
+    const h = matrix; // Alias for clarity
+    const sCoordX = h[0]*dstCenter[0] + h[1]*dstCenter[1] + h[2]*1.0;
+    const sCoordY = h[3]*dstCenter[0] + h[4]*dstCenter[1] + h[5]*1.0;
+    const sCoordW = h[6]*dstCenter[0] + h[7]*dstCenter[1] + h[8]*1.0;
+    
+    const transformedCenterHomogenous = [sCoordX, sCoordY, sCoordW];
+    const transformedCenterNormalized = [sCoordX / sCoordW, sCoordY / sCoordW];
+
+    // Calculate approximate center of the source trapezoid for comparison
+    let avgSrcX = 0;
+    let avgSrcY = 0;
+    for (let i = 0; i < srcPointsForLogging.length; i++) {
+        avgSrcX += srcPointsForLogging[i][0];
+        avgSrcY += srcPointsForLogging[i][1];
+    }
+    avgSrcX /= srcPointsForLogging.length;
+    avgSrcY /= srcPointsForLogging.length;
+    const approxSrcCenter = [avgSrcX, avgSrcY];
+
+    console.log("--- Perspective Transformation Verification ---");
+    console.log("Destination center (output canvas):", dstCenter);
+    console.log("Calculated perspective matrix (H):", matrix);
+    console.log("Transformed center (homogenous coords in source):", transformedCenterHomogenous);
+    console.log("Transformed center (normalized coords in source):", transformedCenterNormalized);
+    console.log("Source trapezoid corners (normalized):", srcPointsForLogging);
+    console.log("Approx. center of source trapezoid:", approxSrcCenter);
+    console.log("-----------------------------------------");
+    // --- End Verification Logging ---
+
     // Update the texture with the current video frame
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, webcam);
     
@@ -500,11 +537,13 @@ function calculatePerspectiveMatrix() {
     }
     
     // Reshape the result into a 3x3 matrix
-    return [
+    const perspectiveMatrix = [
         h[0], h[1], h[2],
         h[3], h[4], h[5],
         h[6], h[7], h[8]
     ];
+    
+    return { matrix: perspectiveMatrix, srcPoints: srcPoints };
 }
 
 // Switch to whiteboard mode
