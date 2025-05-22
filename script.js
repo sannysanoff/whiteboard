@@ -1295,6 +1295,10 @@ function doWhiteboardResize(event) {
         whiteboardCanvas.width = currentWhiteboardDrawingWidth; // Update drawing buffer width
         // whiteboardCanvas.height stays the same
 
+        // Update CSS display size to match drawing buffer size
+        whiteboardCanvas.style.width = currentWhiteboardDrawingWidth + 'px';
+        whiteboardCanvas.style.height = currentWhiteboardDrawingHeight + 'px';
+
         // Update WebGL viewport and uniforms
         if (gl && program) { // Check if WebGL is initialized
             gl.viewport(0, 0, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
