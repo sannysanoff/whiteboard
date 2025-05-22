@@ -472,9 +472,9 @@ function updateHtmlHandlesPositions() {
             const cssX = (canvasP[0] / videoWidth) * containerRect.width;
             const cssY = (canvasP[1] / videoHeight) * containerRect.height;
             
-            // Position the pin so the circle is at the coordinate, needle extends down from it
+            // Position the pin so the needle tip is at the exact coordinate
             handleEl.style.left = `${cssX - 8}px`; // 8px = half of pin width (16px)
-            handleEl.style.top = `${cssY - 16}px`; // 16px = circle center position, needle extends down
+            handleEl.style.top = `${cssY - 40}px`; // 40px = full pin height, so needle tip is at cssY
             
             // Position the label above the pin
             const labelEl = handleEl.querySelector('.corner-label');
