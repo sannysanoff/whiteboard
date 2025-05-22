@@ -1,6 +1,5 @@
 // Global variables
-// Global variables
-let webcam, overlayCanvas, whiteboardCanvas;
+let webcam, overlayCanvas, whiteboardCanvas, cameraSelect; // Added cameraSelect
 let overlayCtx, whiteboardCtx;
 let videoWidth, videoHeight;
 let trapezoidPoints = [];
@@ -46,10 +45,14 @@ document.addEventListener('DOMContentLoaded', () => {
     webcam = document.getElementById('webcam');
     overlayCanvas = document.getElementById('overlay-canvas');
     whiteboardCanvas = document.getElementById('whiteboard-canvas');
+    cameraSelect = document.getElementById('camera-select'); // Get camera select element
     overlayCtx = overlayCanvas.getContext('2d');
     // whiteboardCtx is no longer initialized here, as whiteboardCanvas will be used for WebGL.
     
     // Set up event listeners
+    cameraSelect.addEventListener('change', () => {
+        initWebcam(cameraSelect.value);
+    });
     document.getElementById('start-btn').addEventListener('click', startWhiteboardMode);
     document.getElementById('back-btn').addEventListener('click', backToSetupMode);
     document.getElementById('clear-btn').addEventListener('click', clearWhiteboard);
@@ -75,8 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
         handle.addEventListener('touchstart', handleTrapezoidInteractionStart, { passive: false });
     }
     
-    // Initialize webcam
-    initWebcam();
+    // Initialize webcam and populate camera list
+    populateCameraList(); // This will call initWebcam after populating
 
     // Add resize listener to update handle positions
     window.addEventListener('resize', updateHtmlHandlesPositions);
@@ -92,16 +95,71 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Initialize webcam access
-async function initWebcam() {
+// Populate camera selection dropdown
+async function populateCameraList() {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                facingMode: 'environment' // Use back camera if available
-            }
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+        cameraSelect.innerHTML = ''; // Clear existing options
+
+        if (videoDevices.length === 0) {
+            const option = document.createElement('option');
+            option.textContent = 'No cameras found';
+            cameraSelect.appendChild(option);
+            cameraSelect.disabled = true;
+            // Optionally, alert the user or display a more prominent message
+            console.warn("No video input devices found.");
+            // Attempt to initialize webcam with default constraints if no specific devices listed
+            // This might still work if browser provides a default without listing it.
+            initWebcam(); 
+            return;
+        }
+
+        cameraSelect.disabled = false;
+        videoDevices.forEach((device, index) => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.textContent = device.label || `Camera ${index + 1}`;
+            cameraSelect.appendChild(option);
         });
+
+        // Initialize webcam with the first camera in the list by default
+        if (cameraSelect.options.length > 0) {
+            initWebcam(cameraSelect.value);
+        } else {
+            // Fallback if somehow list is empty after filtering (should be caught by videoDevices.length === 0)
+            initWebcam();
+        }
+
+    } catch (error) {
+        console.error('Error populating camera list:', error);
+        // Fallback to default initWebcam if enumeration fails
+        initWebcam();
+    }
+}
+
+// Initialize webcam access
+async function initWebcam(deviceId = null) {
+    try {
+        // Stop any existing stream before starting a new one
+        if (webcam.srcObject) {
+            webcam.srcObject.getTracks().forEach(track => track.stop());
+        }
+
+        const videoConstraints = {
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+        };
+
+        if (deviceId) {
+            videoConstraints.deviceId = { exact: deviceId };
+        } else {
+            // Only use facingMode if no specific deviceId is requested
+            videoConstraints.facingMode = 'environment'; 
+        }
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
         
         webcam.srcObject = stream;
         

@@ -64,6 +64,15 @@ h1 {
     color: #666;
 }
 
+#camera-select-container {
+    /* Styles are inline in HTML for simplicity, can be moved here */
+}
+
+#camera-select {
+    /* Styles are inline in HTML for simplicity, can be moved here */
+    background-color: white; /* Ensure consistent background */
+}
+
 #camera-container {
     position: relative;
     width: 100%;
