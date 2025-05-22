@@ -20,6 +20,9 @@ const HANDLE_SIZE = 20; // Pixel dimension of the square HTML handle (matches CS
 // Global variable to control initial phase ('setup' or 'whiteboard')
 let initialPhase = 'setup';
 
+// Maps handle index (0:BR, 1:BL, 2:UL, 3:UR) to trapezoidPoints index
+const trapezoidPointIndices = [1, 0, 3, 2];
+
 // Whiteboard resizing variables
 let wbLeftHandle, wbRightHandle;
 let isResizingWhiteboard = false;
@@ -456,18 +459,20 @@ function calculateTrapezoidPoints(zoomFactor = 1.0) {
 }
 
 // Define handle angles in radians for each handle
+// The angle determines the direction from the handle's circle (base) towards the trapezoid corner (tip).
+// The needle element itself is rotated by this angle.
 function getHandleAngle(handleIndex) {
     switch(handleIndex) {
-        case 0: // Bottom-right (BR) - needle points left and up
-            return -30 * (Math.PI / 180); // -30 degrees in radians
-        case 1: // Bottom-left (BL) - needle points right and up
-            return 30 * (Math.PI / 180); // 30 degrees in radians
-        case 2: // Top-left (UL) - needle points down
-            return Math.PI / 2; // 90 degrees in radians (straight down)
-        case 3: // Top-right (UR) - needle points down
-            return Math.PI / 2; // 90 degrees in radians (straight down)
+        case 0: // Bottom-Right handle (htmlHandles[0]): needle points left-up towards corner.
+            return -30 * (Math.PI / 180); // -30 degrees
+        case 1: // Bottom-Left handle (htmlHandles[1]): needle points right-up towards corner.
+            return 30 * (Math.PI / 180);  // 30 degrees
+        case 2: // Top-Left handle (htmlHandles[2]): needle points right towards corner.
+            return Math.PI / 2;  // 90 degrees
+        case 3: // Top-Right handle (htmlHandles[3]): needle points left towards corner.
+            return -Math.PI / 2; // -90 degrees
         default:
-            return Math.PI / 2; // Default to pointing down
+            return 0; // Default, should not happen
     }
 }
 
@@ -479,11 +484,12 @@ function updateHtmlHandlesPositions() {
     if (!cameraContainer) return;
     const containerRect = cameraContainer.getBoundingClientRect();
 
-    for (let i = 0; i < trapezoidPoints.length; i++) {
-        const canvasP = trapezoidPoints[i];
+    for (let i = 0; i < htmlHandles.length; i++) { // Iterate through handles
         const handleEl = htmlHandles[i];
+        const actualTrapezoidPointIndex = trapezoidPointIndices[i];
+        const canvasP = trapezoidPoints[actualTrapezoidPointIndex];
 
-        if (handleEl) {
+        if (handleEl && canvasP) {
             // Convert canvas coordinates to CSS pixel values relative to the container
             const needleTipX = (canvasP[0] / videoWidth) * containerRect.width;
             const needleTipY = (canvasP[1] / videoHeight) * containerRect.height;
@@ -520,16 +526,16 @@ function updateHtmlHandlesPositions() {
             // Position the label based on handle type
             const labelEl = handleEl.querySelector('.corner-label');
             if (labelEl) {
-                // Position labels based on handle angle
-                if (i === 0) { // Bottom-right (BR)
-                    labelEl.style.left = '20px';
+                // Position labels based on handle index (i)
+                if (i === 0) { // Bottom-right (BR) handle
+                    labelEl.style.left = '-25px'; // Adjusted for image: left and up
                     labelEl.style.top = '-20px';
-                } else if (i === 1) { // Bottom-left (BL)
-                    labelEl.style.left = '-20px';
+                } else if (i === 1) { // Bottom-left (BL) handle
+                    labelEl.style.left = '20px'; // Adjusted for image: right and up
                     labelEl.style.top = '-20px';
-                } else if (i === 2 || i === 3) { // Top corners
-                    labelEl.style.left = '0px';
-                    labelEl.style.top = '-20px';
+                } else if (i === 2 || i === 3) { // Top handles (UL, UR)
+                    labelEl.style.left = '0px';   // Centered above
+                    labelEl.style.top = '-25px';  // Slightly more above
                     labelEl.style.transform = 'translateX(-50%)';
                 }
             }
@@ -686,17 +692,20 @@ function handleTrapezoidInteractionMove(event) {
     let containerX = clientX - containerRect.left;
     let containerY = clientY - containerRect.top;
     
-    // Find the index of the dragged handle
-    const cornerIndex = htmlHandles.indexOf(draggedHtmlHandle);
-    if (cornerIndex === -1) return; // Should not happen
+    // Find the index of the dragged handle (0 for BR, 1 for BL, etc.)
+    const handleIdx = htmlHandles.indexOf(draggedHtmlHandle);
+    if (handleIdx === -1) return; // Should not happen
+
+    // Determine the actual index in trapezoidPoints array to update
+    const actualTrapezoidPointIndex = trapezoidPointIndices[handleIdx];
 
     // Convert container coordinates directly to canvas coordinates
     const canvasX = (containerX / containerRect.width) * videoWidth;
     const canvasY = (containerY / containerRect.height) * videoHeight;
 
     // Update the corresponding trapezoidPoint. No clamping.
-    trapezoidPoints[cornerIndex][0] = canvasX;
-    trapezoidPoints[cornerIndex][1] = canvasY;
+    trapezoidPoints[actualTrapezoidPointIndex][0] = canvasX;
+    trapezoidPoints[actualTrapezoidPointIndex][1] = canvasY;
     
     // Update matrix and handle positions
     updatePerspectiveMatrix();
