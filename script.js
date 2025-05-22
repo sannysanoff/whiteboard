@@ -285,7 +285,6 @@ async function initWebcam(deviceId = null) {
             videoHeight = containerWidth / aspectRatio;
             
             // --- Whiteboard Canvas initial drawing surface size ---
-            const aspectRatio = videoWidth / videoHeight;
             const canvasContainer = document.getElementById('canvas-container');
             currentWhiteboardDrawingWidth = Math.min(canvasContainer.clientWidth, canvasContainer.clientHeight * aspectRatio);
             currentWhiteboardDrawingHeight = currentWhiteboardDrawingWidth / aspectRatio;
