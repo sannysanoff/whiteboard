@@ -1510,6 +1510,9 @@ function startWhiteboardMode() {
                         console.log('WebGL already initialized');
                     }
                     updateWhiteboardLayout(); // Position and style canvas and handles
+                    
+                    // Trigger flash zoom animation on handles
+                    animateHandlesFlashZoom();
                 }
             }, 30);
         }
@@ -1619,6 +1622,24 @@ function handleZoomSlider() {
     calculateTrapezoidPoints(zoomFactor);
 }
 
+
+// Animate handles with flash and zoom effect
+function animateHandlesFlashZoom() {
+    // Add animation class to all handles
+    htmlHandles.forEach((handle, index) => {
+        if (handle) {
+            // Add a slight delay for each handle to create a cascading effect
+            setTimeout(() => {
+                handle.classList.add('handle-flash-zoom');
+                
+                // Remove the class after animation completes
+                setTimeout(() => {
+                    handle.classList.remove('handle-flash-zoom');
+                }, 2000);
+            }, index * 150); // 150ms delay between each handle
+        }
+    });
+}
 
 // --- Whiteboard Resizing Functions ---
 
