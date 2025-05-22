@@ -116,6 +116,8 @@ async function initWebcam() {
 
 // Global flag to ensure WebGL is initialized only once
 let isWebGLInitialized = false;
+// Global flag to ensure perspective info is logged only once
+let hasLoggedPerspectiveInfo = false;
 
 // Calculate trapezoid points based on video dimensions and zoom factor
 function calculateTrapezoidPoints(zoomFactor = 1.0) {
@@ -368,10 +370,11 @@ function processVideoFrame() {
     // Set the matrix uniform. Note: 'true' for transpose because 'matrix' is row-major.
     gl.uniformMatrix3fv(matrixLocation, true, matrix);
 
-    // --- Verification Logging (runs every frame, consider adding a flag to log once) ---
-    const dstCenter = [0.5, 0.5]; // Center of the destination (output) canvas
+    // --- Verification Logging (runs only once) ---
+    if (!hasLoggedPerspectiveInfo) {
+        const dstCenter = [0.5, 0.5]; // Center of the destination (output) canvas
     
-    // Manually multiply: H * [dstCenter[0], dstCenter[1], 1.0]^T
+        // Manually multiply: H * [dstCenter[0], dstCenter[1], 1.0]^T
     const h = matrix; // Alias for clarity
     const sCoordX = h[0]*dstCenter[0] + h[1]*dstCenter[1] + h[2]*1.0;
     const sCoordY = h[3]*dstCenter[0] + h[4]*dstCenter[1] + h[5]*1.0;
@@ -399,6 +402,8 @@ function processVideoFrame() {
     console.log("Source trapezoid corners (normalized):", srcPointsForLogging);
     console.log("Approx. center of source trapezoid:", approxSrcCenter);
     console.log("-----------------------------------------");
+        hasLoggedPerspectiveInfo = true; // Set flag to true after logging
+    }
     // --- End Verification Logging ---
 
     // Update the texture with the current video frame
