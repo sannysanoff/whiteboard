@@ -331,18 +331,19 @@ async function initWebcam(deviceId = null) {
             requestAnimationFrame(drawLoop);
             
             // If starting directly in whiteboard mode, ensure WebGL is initialized after canvas is ready
-            if (initialPhase === 'whiteboard') {
+            if (initialPhase === 'whiteboard' && isWhiteboardMode) {
                 if (!isWebGLInitialized) {
                     // Defer WebGL initialization with a short timeout.
-                    // This gives the browser more time to fully render the canvas 
-                    // with its new dimensions and visibility before attempting to get the WebGL context.
                     setTimeout(() => {
-                        requestAnimationFrame(() => { 
+                        requestAnimationFrame(() => {
                             initWebGL();
                             isWebGLInitialized = true;
-                            updateWhiteboardLayout(); // Position and style canvas
+                            updateWhiteboardLayout(); // Position and style canvas and handles
                         });
-                    }, 100); 
+                    }, 100);
+                } else {
+                    // If WebGL already initialized (e.g., camera change while in whiteboard initialPhase)
+                    updateWhiteboardLayout(); // Ensure layout and handles are updated
                 }
             }
         };
@@ -1065,12 +1066,7 @@ function startWhiteboardMode() {
                         initWebGL();
                         isWebGLInitialized = true;
                     }
-                    // Make handles visible and set their default appearance
-                    wbLeftHandle.style.display = 'block';
-                    wbRightHandle.style.display = 'block';
-                    // Opacity and background are set by CSS, but can be explicitly set here if needed
-                    // wbLeftHandle.style.opacity = '0.6'; 
-                    // wbRightHandle.style.opacity = '0.6';
+                    // updateWhiteboardLayout will now handle making handles visible.
                     updateWhiteboardLayout(); // Position and style canvas and handles
                 }
             }, 30);
@@ -1186,6 +1182,20 @@ function handleZoomSlider() {
 function updateWhiteboardLayout() {
     if (!whiteboardCanvas || !wbLeftHandle || !wbRightHandle || !currentWhiteboardDrawingWidth || !currentWhiteboardDrawingHeight) {
         console.warn("updateWhiteboardLayout: Missing elements or dimensions.");
+        return;
+    }
+
+    // Ensure handles are visible if in whiteboard mode.
+    // backToSetupMode() handles hiding them when exiting this mode.
+    if (isWhiteboardMode) {
+        wbLeftHandle.style.display = 'block';
+        wbRightHandle.style.display = 'block';
+    } else {
+        // This function should primarily be called for layout updates in whiteboard mode.
+        // If called when not in whiteboard mode, ensure handles are hidden and exit.
+        wbLeftHandle.style.display = 'none';
+        wbRightHandle.style.display = 'none';
+        console.warn("updateWhiteboardLayout called when not in whiteboard mode. Handles hidden.");
         return;
     }
 
