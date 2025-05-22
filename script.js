@@ -760,15 +760,7 @@ function handleTrapezoidInteractionMove(event) {
             magnifierCtx.drawImage(webcam, 
                                    sx, sy, sourceSize, sourceSize, 
                                    0, 0, destSize, destSize);
-        } else {
-            // Clear magnifier when outside video bounds
-            console.log(`Mouse: canvas(${containerX.toFixed(1)},${containerY.toFixed(1)}) webcam(${magnifierVideoX.toFixed(1)},${magnifierVideoY.toFixed(1)}) | OUT OF BOUNDS | Canvas max: (${webcam.videoWidth},${webcam.videoHeight})`);
-            magnifierCtx.clearRect(0, 0, destSize, destSize);
-            // Fill with a dark background to indicate out of bounds
-            magnifierCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-            magnifierCtx.fillRect(0, 0, destSize, destSize);
-        }
-        
+            
             // Draw crosshair
             magnifierCtx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
             magnifierCtx.lineWidth = 1;
@@ -785,6 +777,13 @@ function handleTrapezoidInteractionMove(event) {
             magnifierCtx.arc(destSize / 2, destSize / 2, 2, 0, 2 * Math.PI);
             magnifierCtx.fill();
         } else {
+            // Clear magnifier when outside video bounds
+            console.log(`Mouse: canvas(${containerX.toFixed(1)},${containerY.toFixed(1)}) webcam(${magnifierVideoX.toFixed(1)},${magnifierVideoY.toFixed(1)}) | OUT OF BOUNDS | Canvas max: (${webcam.videoWidth},${webcam.videoHeight})`);
+            magnifierCtx.clearRect(0, 0, destSize, destSize);
+            // Fill with a dark background to indicate out of bounds
+            magnifierCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            magnifierCtx.fillRect(0, 0, destSize, destSize);
+            
             // Draw crosshair and center dot even when out of bounds
             const destSize = 100; // Define destSize for out-of-bounds case
             magnifierCtx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
