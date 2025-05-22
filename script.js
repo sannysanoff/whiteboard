@@ -98,13 +98,19 @@ document.addEventListener('DOMContentLoaded', () => {
 // Populate camera selection dropdown
 async function populateCameraList() {
     console.log('Beginning webcam detection (populateCameraList)...');
+    let videoDevices = [];
+    const maxAttempts = 3;
+    const delayBetweenAttempts = 1000; // 1 second
+
     try {
         // First, try to get user media to ensure permissions are granted.
         // This helps in getting more descriptive labels from enumerateDevices.
+        console.log('Attempting initial getUserMedia for permission priming...');
         try {
             const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
             // Immediately stop the tracks as this stream is only for permission priming.
             tempStream.getTracks().forEach(track => track.stop());
+            console.log('Initial getUserMedia successful, tracks stopped.');
         } catch (permissionError) {
             // Log the error, but proceed to enumerateDevices.
             // It might still work, or list devices without labels, or fail if permissions are strictly denied.
@@ -113,10 +119,33 @@ async function populateCameraList() {
             // The main initWebcam call later will handle critical camera access errors and alert the user.
         }
 
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        console.log('Webcam detection result (all devices):', devices);
-        const videoDevices = devices.filter(device => device.kind === 'videoinput');
-        console.log('Filtered video input devices:', videoDevices);
+        // Poll for devices
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            console.log(`Enumerating devices, attempt ${attempt}/${maxAttempts}...`);
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            console.log(`Attempt ${attempt} - All devices found:`, devices);
+            
+            videoDevices = devices.filter(device => device.kind === 'videoinput');
+            console.log(`Attempt ${attempt} - Filtered video input devices:`, videoDevices.map(d => ({ label: d.label, deviceId: d.deviceId, kind: d.kind })));
+
+            // If devices are found, or it's the last attempt, break the loop.
+            // We check if any device has a label, as sometimes devices appear without labels initially.
+            const hasLabeledDevices = videoDevices.some(device => device.label && device.label !== '');
+            if (videoDevices.length > 0 && hasLabeledDevices) {
+                console.log(`Found labeled video devices on attempt ${attempt}. Proceeding.`);
+                break; 
+            }
+            if (videoDevices.length > 0 && attempt === maxAttempts) {
+                console.log(`Found video devices (some may be unlabeled) on final attempt ${attempt}. Proceeding.`);
+                break;
+            }
+
+
+            if (attempt < maxAttempts) {
+                console.log(`Waiting ${delayBetweenAttempts}ms before next attempt...`);
+                await new Promise(resolve => setTimeout(resolve, delayBetweenAttempts));
+            }
+        }
 
         cameraSelect.innerHTML = ''; // Clear existing options
 
