@@ -206,7 +206,7 @@ async function populateCameraList() {
     console.log('Populating camera list (post-permission)...');
     let videoDevices = [];
     const maxAttempts = 3; // Polling can still be useful for devices that enumerate slowly.
-    const delayBetweenAttempts = 1000; // 1 second
+    const delayBetweenAttempts = 100; // 1 second
 
     try {
         // Poll for devices. Permissions should already be granted by initWebcam.
