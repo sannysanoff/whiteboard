@@ -1,5 +1,5 @@
 // Global variables
-let webcam, overlayCanvas, whiteboardCanvas, cameraSelect;
+let webcam, overlayCanvas, whiteboardCanvas;
 let magnifierDiv, magnifierCanvas, magnifierCtx;
 let overlayCtx; // whiteboardCtx removed as whiteboard is WebGL
 let videoWidth, videoHeight;
@@ -87,7 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
     webcam = document.getElementById('webcam');
     overlayCanvas = document.getElementById('overlay-canvas');
     whiteboardCanvas = document.getElementById('whiteboard-canvas');
-    cameraSelect = document.getElementById('camera-select'); // Get camera select element
     magnifierDiv = document.getElementById('magnifier');
     magnifierCanvas = document.getElementById('magnifier-canvas');
     
@@ -100,9 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // whiteboardCtx is no longer initialized here, as whiteboardCanvas will be used for WebGL.
     
     // Set up event listeners
-    cameraSelect.addEventListener('change', () => {
-        initWebcam(cameraSelect.value);
-    });
     document.getElementById('start-btn').addEventListener('click', startWhiteboardMode);
     document.getElementById('back-btn').addEventListener('click', backToSetupMode);
     document.getElementById('copy-btn').addEventListener('click', copyWhiteboardToClipboard);
@@ -128,59 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
         handle.addEventListener('touchstart', handleTrapezoidInteractionStart, { passive: false });
     }
 
-    // Refresh cameras button
-    document.getElementById('refresh-cameras-btn').addEventListener('click', async () => {
-        console.log('Refresh cameras button clicked.');
-        
-        await populateCameraList(); // This repopulates cameraSelect
-
-        const currentStream = webcam.srcObject;
-        let activeStreamStillAvailableAndSelected = false;
-
-        if (currentStream && currentStream.active) {
-            const videoTracks = currentStream.getVideoTracks();
-            if (videoTracks.length > 0) {
-                const currentTrackSettings = videoTracks[0].getSettings();
-                const activeDeviceId = currentTrackSettings.deviceId;
-
-                if (activeDeviceId) {
-                    for (let i = 0; i < cameraSelect.options.length; i++) {
-                        if (cameraSelect.options[i].value === activeDeviceId) {
-                            cameraSelect.value = activeDeviceId; // Re-select it
-                            activeStreamStillAvailableAndSelected = true;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (!activeStreamStillAvailableAndSelected && webcam.srcObject) {
-            console.warn('Previously active camera is no longer available or stream is inactive after refresh.');
-            if (cameraSelect.options.length === 0) {
-                alert("No cameras found after refresh. Stopping video stream.");
-                if (webcam.srcObject) {
-                    webcam.srcObject.getTracks().forEach(track => track.stop());
-                    webcam.srcObject = null;
-                    webcam.style.display = 'none'; // Hide webcam element
-                    overlayCanvas.style.display = 'none'; // Hide overlay
-                }
-            } else {
-                // A new camera might have been selected by default if the list is not empty.
-                // The 'change' event on cameraSelect should handle initializing this new camera.
-                // If cameraSelect.value is different than before, initWebcam(cameraSelect.value) will be called.
-            }
-        } else if (!webcam.srcObject && cameraSelect.options.length > 0) {
-            // No active stream, but cameras are now listed. User can select one.
-            // Or, we could auto-init the first one:
-            // initWebcam(cameraSelect.value); 
-            // For now, let user explicitly select.
-            console.log("Cameras found after refresh. Please select one to start.");
-        }
-    });
     
-    // Initialize webcam and populate camera list
-    // initWebcam will now be called first, and it will call populateCameraList after stream is active.
+    // Initialize webcam
     initWebcam(); 
 
     // Add resize listener to update handle positions and whiteboard size
@@ -241,69 +186,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mouseup', stopWhiteboardResize);
 });
 
-// Populate camera selection dropdown
-// This function is now called AFTER initWebcam has successfully started a stream.
-async function populateCameraList() {
-    console.log('Populating camera list (post-permission)...');
-    let videoDevices = [];
-    const maxAttempts = 3; // Polling can still be useful for devices that enumerate slowly.
-    const delayBetweenAttempts = 100; // 1 second
-
-    try {
-        // Poll for devices. Permissions should already be granted by initWebcam.
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-            console.log(`Enumerating devices, attempt ${attempt}/${maxAttempts}...`);
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            console.log(`Attempt ${attempt} - All devices found:`, devices);
-            
-            videoDevices = devices.filter(device => device.kind === 'videoinput');
-            console.log(`Attempt ${attempt} - Filtered video input devices:`, videoDevices.map(d => ({ label: d.label, deviceId: d.deviceId, kind: d.kind })));
-
-            const hasLabeledDevices = videoDevices.some(device => device.label && device.label !== '');
-            if (videoDevices.length > 0 && hasLabeledDevices) {
-                console.log(`Found labeled video devices on attempt ${attempt}. Proceeding.`);
-                break; 
-            }
-            if (videoDevices.length > 0 && attempt === maxAttempts) {
-                console.log(`Found video devices (some may be unlabeled) on final attempt ${attempt}. Proceeding.`);
-                break;
-            }
-
-            if (attempt < maxAttempts) {
-                console.log(`Waiting ${delayBetweenAttempts}ms before next attempt...`);
-                await new Promise(resolve => setTimeout(resolve, delayBetweenAttempts));
-            }
-        }
-
-        cameraSelect.innerHTML = ''; // Clear existing options
-
-        if (videoDevices.length === 0) {
-            const option = document.createElement('option');
-            option.textContent = 'No cameras found';
-            cameraSelect.appendChild(option);
-            cameraSelect.disabled = true;
-            console.warn("populateCameraList: No video input devices found even after initWebcam likely succeeded.");
-            return; // initWebcam handles the stream; this function just updates UI.
-        }
-
-        cameraSelect.disabled = false;
-        videoDevices.forEach((device, index) => {
-            const option = document.createElement('option');
-            option.value = device.deviceId;
-            option.textContent = device.label || `Camera ${index + 1} (No label)`;
-            cameraSelect.appendChild(option);
-        });
-
-        // Note: We no longer call initWebcam from here. 
-        // The active camera is managed by the initial initWebcam call and the 'change' event listener.
-
-    } catch (error) {
-        console.error('Error populating camera list:', error);
-        cameraSelect.innerHTML = '<option>Error loading cameras</option>';
-        cameraSelect.disabled = true;
-        // Do not call initWebcam from here.
-    }
-}
 
 // Initialize webcam access
 async function initWebcam(deviceId = null) {
@@ -383,48 +265,6 @@ async function initWebcam(deviceId = null) {
             whiteboardCanvas.width = currentWhiteboardDrawingWidth;
             whiteboardCanvas.height = currentWhiteboardDrawingHeight;
 
-            // Populate camera list AFTER stream is active and permissions are granted
-            await populateCameraList();
-
-            // Ensure the camera select dropdown reflects the currently active stream's deviceId
-            const currentStream = webcam.srcObject;
-            if (currentStream) {
-                const videoTracks = currentStream.getVideoTracks();
-                if (videoTracks.length > 0) {
-                    const currentTrackSettings = videoTracks[0].getSettings();
-                    const activeDeviceId = currentTrackSettings.deviceId;
-                    const activeTrackLabel = videoTracks[0].label;
-
-                    if (activeDeviceId) { // Ensure activeDeviceId is valid
-                        let foundInSelect = false;
-                        if (cameraSelect.options.length > 0) {
-                            for (let i = 0; i < cameraSelect.options.length; i++) {
-                                if (cameraSelect.options[i].value === activeDeviceId) {
-                                    cameraSelect.value = activeDeviceId;
-                                    foundInSelect = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!foundInSelect) {
-                            console.warn("Active camera's deviceId not found in the populated list. Adding it dynamically.");
-                            const option = document.createElement('option');
-                            option.value = activeDeviceId;
-                            // Use track label, fallback to a generic name with ID
-                            option.textContent = activeTrackLabel || `Active Camera (ID: ${activeDeviceId.substring(0, 8)}...)`;
-                            cameraSelect.appendChild(option);
-                            cameraSelect.value = activeDeviceId; // Select the newly added option
-                        }
-                    } else {
-                        console.warn("Could not determine deviceId of the active camera stream.");
-                    }
-                } else {
-                    console.warn("Active stream has no video tracks.");
-                }
-            } else {
-                console.warn("No active stream source to determine current camera.");
-            }
             
             // Calculate trapezoid points based on video dimensions
             calculateTrapezoidPoints(); // This will also call updateHtmlHandlesPositions
@@ -464,9 +304,6 @@ async function initWebcam(deviceId = null) {
     } catch (error) {
         console.error('Error accessing webcam:', error);
         alert('Unable to access webcam. Please ensure you have granted camera permissions.');
-        // If webcam access fails, disable camera selection as it's non-functional
-        cameraSelect.innerHTML = '<option>Camera access failed</option>';
-        cameraSelect.disabled = true;
     }
 }
 
