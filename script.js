@@ -285,9 +285,10 @@ async function initWebcam(deviceId = null) {
             videoHeight = containerWidth / aspectRatio;
             
             // --- Whiteboard Canvas initial drawing surface size ---
+            const aspectRatio = videoWidth / videoHeight;
             const canvasContainer = document.getElementById('canvas-container');
-            currentWhiteboardDrawingWidth = canvasContainer.clientWidth;
-            currentWhiteboardDrawingHeight = canvasContainer.clientHeight;
+            currentWhiteboardDrawingWidth = Math.min(canvasContainer.clientWidth, canvasContainer.clientHeight * aspectRatio);
+            currentWhiteboardDrawingHeight = currentWhiteboardDrawingWidth / aspectRatio;
             whiteboardCanvas.width = currentWhiteboardDrawingWidth;
             whiteboardCanvas.height = currentWhiteboardDrawingHeight;
 
@@ -1139,10 +1140,7 @@ function handleZoomSlider() {
 // --- Whiteboard Resizing Functions ---
 
 function updateWhiteboardLayout() {
-    if (!whiteboardCanvas || !wbLeftHandle || !wbRightHandle || !currentWhiteboardDrawingWidth || !currentWhiteboardDrawingHeight) {
-        console.warn("updateWhiteboardLayout: Missing elements or dimensions.");
-        return;
-    }
+    if (!whiteboardCanvas || !wbLeftHandle || !wbRightHandle || !currentWhiteboardDrawingWidth || !currentWhiteboardDrawingHeight) return;
 
     // Ensure handles are visible if in whiteboard mode.
     // backToSetupMode() handles hiding them when exiting this mode.
@@ -1162,29 +1160,36 @@ function updateWhiteboardLayout() {
     const containerWidth = canvasContainer.clientWidth;
     const containerHeight = canvasContainer.clientHeight;
 
-    // Set CSS style for the whiteboard canvas
+    // Calculate maximum possible dimensions while maintaining aspect ratio
+    const aspectRatio = videoWidth / videoHeight;
+    const maxWidth = Math.min(containerWidth, containerHeight * aspectRatio);
+    const maxHeight = Math.min(containerHeight, containerWidth / aspectRatio);
+
+    // Set initial dimensions if not already set
+    if (!currentWhiteboardDrawingWidth || !currentWhiteboardDrawingHeight) {
+        currentWhiteboardDrawingWidth = maxWidth;
+        currentWhiteboardDrawingHeight = maxHeight;
+    }
+
+    // Clamp dimensions to container size
+    currentWhiteboardDrawingWidth = Math.min(currentWhiteboardDrawingWidth, maxWidth);
+    currentWhiteboardDrawingHeight = Math.min(currentWhiteboardDrawingHeight, maxHeight);
+
+    // Update canvas dimensions
+    whiteboardCanvas.width = currentWhiteboardDrawingWidth;
+    whiteboardCanvas.height = currentWhiteboardDrawingHeight;
     whiteboardCanvas.style.width = currentWhiteboardDrawingWidth + 'px';
     whiteboardCanvas.style.height = currentWhiteboardDrawingHeight + 'px';
-    whiteboardCanvas.style.left = (containerWidth - currentWhiteboardDrawingWidth) / 2 + 'px';
-    whiteboardCanvas.style.top = (containerHeight - currentWhiteboardDrawingHeight) / 2 + 'px';
 
     // Position handles
-    const canvasStyle = whiteboardCanvas.style;
-    const wbTop = parseFloat(canvasStyle.top);
-    const wbLeft = parseFloat(canvasStyle.left);
-    const wbWidth = parseFloat(canvasStyle.width); // This is currentWhiteboardDrawingWidth
-    // const wbHeight = parseFloat(canvasStyle.height); // This is currentWhiteboardDrawingHeight
-
-    const handleActualWidth = 8; // Use fixed width from CSS (8px)
-    const handleActualHeight = 70; // Use fixed height from CSS (70px)
-
-    wbLeftHandle.style.top = (wbTop + currentWhiteboardDrawingHeight / 2 - handleActualHeight / 2) + 'px';
-    // Position left handle's left edge at the canvas's left edge
-    wbLeftHandle.style.left = wbLeft + 'px'; 
+    const handleWidth = 8;
+    const handleHeight = 70;
+    
+    wbLeftHandle.style.top = `${(containerHeight - handleHeight) / 2}px`;
+    wbLeftHandle.style.left = `${(containerWidth - currentWhiteboardDrawingWidth) / 2 - handleWidth}px`;
     
     wbRightHandle.style.top = wbLeftHandle.style.top;
-    // Position right handle's left edge so its right edge is at the canvas's right edge
-    wbRightHandle.style.left = (wbLeft + wbWidth - handleActualWidth) + 'px';
+    wbRightHandle.style.left = `${(containerWidth + currentWhiteboardDrawingWidth) / 2}px`;
 }
 
 function startWhiteboardResize(event) {
