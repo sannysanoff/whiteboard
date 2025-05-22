@@ -517,11 +517,9 @@ function calculatePerspectiveMatrix() {
     }
     
     // Find the eigenvector corresponding to the smallest eigenvalue
-    // This is a simplified approach - in practice, use a proper linear algebra library
-    // For now, we'll use an iterative power method approximation
-    let h = [1, 1, 1, 1, 1, 1, 1, 1, 1]; // Initial guess
+    // The following "new solver" section implements a more robust method.
     
-    // Normalize the vector
+    // Normalize the vector (used by the solver below)
     const normalize = (v) => {
         const magnitude = Math.sqrt(v.reduce((sum, val) => sum + val * val, 0));
         return v.map(val => val / magnitude);
