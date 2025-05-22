@@ -208,6 +208,7 @@ h1 {
     height: 100vh;
     width: 100vw;
     flex-direction: column;
+    transition: opacity 0.3s ease 0.1s; /* Add 100ms delay before transition starts */
 }
 
 #canvas-container {

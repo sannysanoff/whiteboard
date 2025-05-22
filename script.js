@@ -294,9 +294,11 @@ async function initWebcam(deviceId = null) {
             });
             
             // Use 1:1 aspect ratio for the whiteboard
-            const containerSize = Math.min(canvasContainer.clientWidth, canvasContainer.clientHeight);
+            // Use offsetWidth/Height instead of clientWidth/Height for more reliable measurements
+            const containerSize = Math.min(canvasContainer.offsetWidth, canvasContainer.offsetHeight);
             console.log('Calculated initial whiteboard size:', containerSize);
             
+            // Initial values will be properly set when whiteboard becomes visible
             currentWhiteboardDrawingWidth = containerSize;
             currentWhiteboardDrawingHeight = containerSize;
             console.log('Set initial whiteboard dimensions:', {
@@ -1048,11 +1050,28 @@ function startWhiteboardMode() {
                 if (whiteboardOpacity >= 1) {
                     clearInterval(fadeIn);
                     whiteboardView.classList.add('active'); // Add .active class
+                    
+                    // INITIALIZE WHITEBOARD SIZE HERE AFTER VISIBLE
+                    const canvasContainer = document.getElementById('canvas-container');
+                    const containerSize = Math.min(canvasContainer.offsetWidth, canvasContainer.offsetHeight);
+                    console.log('Final container size:', containerSize);
+                    
+                    currentWhiteboardDrawingWidth = containerSize;
+                    currentWhiteboardDrawingHeight = containerSize;
+                    whiteboardCanvas.width = currentWhiteboardDrawingWidth;
+                    whiteboardCanvas.height = currentWhiteboardDrawingHeight;
+                    
+                    // Force re-initialization of WebGL with proper size
+                    if (gl) {
+                        gl.viewport(0, 0, containerSize, containerSize);
+                        setRectangle(gl, 0, 0, containerSize, containerSize);
+                    }
+                    
+                    updateWhiteboardLayout();
                     if (!isWebGLInitialized) {
                         initWebGL();
                         isWebGLInitialized = true;
                     }
-                    // updateWhiteboardLayout will now handle making handles visible.
                     updateWhiteboardLayout(); // Position and style canvas and handles
                 }
             }, 30);
