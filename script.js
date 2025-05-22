@@ -1368,7 +1368,24 @@ function doWhiteboardResize(event) {
             gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); // Ensure correct buffer is bound
             setRectangle(gl, 0, 0, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
         }
-        updateWhiteboardLayout(); // Update CSS and handle positions
+        
+        // Update handle positions manually instead of calling updateWhiteboardLayout
+        const canvasContainer = document.getElementById('canvas-container');
+        const containerWidth = canvasContainer.clientWidth;
+        const containerHeight = canvasContainer.clientHeight;
+        const handleWidth = 8;
+        const handleHeight = 70;
+        
+        // Calculate canvas position within container (centered by flexbox)
+        const canvasLeft = (containerWidth - currentWhiteboardDrawingWidth) / 2;
+        const canvasTop = (containerHeight - currentWhiteboardDrawingHeight) / 2;
+        
+        // Position handles adjacent to the canvas edges
+        wbLeftHandle.style.top = `${canvasTop + (currentWhiteboardDrawingHeight - handleHeight) / 2}px`;
+        wbLeftHandle.style.left = `${canvasLeft - handleWidth}px`;
+        
+        wbRightHandle.style.top = `${canvasTop + (currentWhiteboardDrawingHeight - handleHeight) / 2}px`;
+        wbRightHandle.style.left = `${canvasLeft + currentWhiteboardDrawingWidth}px`;
     }
 }
 
