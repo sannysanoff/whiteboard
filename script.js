@@ -601,7 +601,7 @@ function calculatePerspectiveMatrix() {
         h[6], h[7], h[8]
     ];
     
-    return { matrix: perspectiveMatrix, srcPoints: srcPoints };
+    return { matrix: perspectiveMatrix, srcPoints: currentSrcPointsNorm };
 }
 
 
