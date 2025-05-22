@@ -631,11 +631,12 @@ function handleTrapezoidInteractionEnd(event) {
 
 // Initialize WebGL for perspective correction
 function initWebGL() {
-    console.log('Attempting to initialize WebGL...');
+    console.log('=== INITIALIZING WEBGL ===');
     console.log('whiteboardCanvas element:', whiteboardCanvas);
-    if (whiteboardCanvas) {
-        console.log('whiteboardCanvas dimensions: width=', whiteboardCanvas.width, 'height=', whiteboardCanvas.height);
-    } else {
+    console.log('Canvas dimensions:', whiteboardCanvas?.width, 'x', whiteboardCanvas?.height);
+    console.log('Canvas style dimensions:', whiteboardCanvas?.style.width, 'x', whiteboardCanvas?.style.height);
+    
+    if (!whiteboardCanvas) {
         console.error('whiteboardCanvas element is not found or not ready.');
         alert('Critical error: Whiteboard canvas element not found.');
         return;
@@ -651,15 +652,30 @@ function initWebGL() {
         return;
     }
     console.log('WebGL context obtained successfully!');
+    console.log('WebGL version:', gl.getParameter(gl.VERSION));
+    console.log('WebGL vendor:', gl.getParameter(gl.VENDOR));
+    console.log('WebGL renderer:', gl.getParameter(gl.RENDERER));
     
     // Get shader sources
     const vertexShaderSource = document.getElementById('vertex-shader').text;
     const fragmentShaderSource = document.getElementById('fragment-shader').text;
     
     // Create shader program
+    console.log('Creating shaders...');
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+    
+    if (!vertexShader || !fragmentShader) {
+        console.error('Failed to create shaders');
+        return;
+    }
+    
     program = createProgram(gl, vertexShader, fragmentShader);
+    if (!program) {
+        console.error('Failed to create shader program');
+        return;
+    }
+    console.log('Shader program created successfully');
     
     // Look up attribute locations
     positionLocation = gl.getAttribLocation(program, 'a_position');
@@ -668,6 +684,12 @@ function initWebGL() {
     // Look up uniform locations
     resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
     matrixLocation = gl.getUniformLocation(program, 'u_matrix');
+    
+    console.log('Attribute/Uniform locations:');
+    console.log('  positionLocation:', positionLocation);
+    console.log('  texCoordLocation:', texCoordLocation);
+    console.log('  resolutionLocation:', resolutionLocation);
+    console.log('  matrixLocation:', matrixLocation);
     
     // Create buffers
     positionBuffer = gl.createBuffer(); // Use global variable
@@ -703,6 +725,9 @@ function initWebGL() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    
+    console.log('WebGL initialization complete');
+    console.log('=== END WEBGL INIT ===');
 }
 
 // Create shader helper function
@@ -755,7 +780,10 @@ function setRectangle(gl, x, y, width, height) {
 
 // Process video frame with perspective correction
 function processVideoFrame() {
-    if (!gl || !isWebGLInitialized) return; // Ensure WebGL is ready
+    if (!gl || !isWebGLInitialized) {
+        console.log('Skipping frame - WebGL not ready. gl:', !!gl, 'initialized:', isWebGLInitialized);
+        return;
+    }
     
     // Tell WebGL how to convert from clip space to pixels
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -799,49 +827,38 @@ function processVideoFrame() {
     ];
     gl.uniformMatrix3fv(matrixLocation, false, matrixTransposed);
 
-    // --- Verification Logging (runs only once) ---
-    // Logging uses the original row-major 'matrix' for consistency with manual calculation.
-    if (!hasLoggedPerspectiveInfo && currentSrcPoints && currentSrcPoints.length === 4) { // Ensure currentSrcPoints is valid
-        const dstCenter = [0.5, 0.5]; // Center of the destination (output) canvas
-    
-        // Manually multiply: H * [dstCenter[0], dstCenter[1], 1.0]^T
-        // Here, 'matrix' is the original row-major matrix.
-        const h_log = matrix; // Alias for clarity in logging context
-        const sCoordX = h_log[0]*dstCenter[0] + h_log[1]*dstCenter[1] + h_log[2]*1.0;
-        const sCoordY = h_log[3]*dstCenter[0] + h_log[4]*dstCenter[1] + h_log[5]*1.0;
-        const sCoordW = h_log[6]*dstCenter[0] + h_log[7]*dstCenter[1] + h_log[8]*1.0;
-    
-    const transformedCenterHomogenous = [sCoordX, sCoordY, sCoordW];
-    const transformedCenterNormalized = [sCoordX / sCoordW, sCoordY / sCoordW];
-
-    // Calculate approximate center of the source trapezoid for comparison
-    let avgSrcX = 0;
-    let avgSrcY = 0;
-    for (let i = 0; i < currentSrcPoints.length; i++) {
-        avgSrcX += currentSrcPoints[i][0];
-        avgSrcY += currentSrcPoints[i][1];
+    // Log basic rendering info once
+    if (!hasLoggedPerspectiveInfo) {
+        console.log("=== WebGL Rendering Debug ===");
+        console.log("Canvas dimensions:", gl.canvas.width, "x", gl.canvas.height);
+        console.log("Viewport:", gl.getParameter(gl.VIEWPORT));
+        console.log("Current program:", program);
+        console.log("Matrix location:", matrixLocation);
+        console.log("Resolution location:", resolutionLocation);
+        console.log("Has perspective matrix:", !!currentPerspectiveMatrix);
+        hasLoggedPerspectiveInfo = true;
     }
-    avgSrcX /= currentSrcPoints.length;
-    avgSrcY /= currentSrcPoints.length;
-    const approxSrcCenter = [avgSrcX, avgSrcY];
-
-    console.log("--- Perspective Transformation Verification ---");
-    console.log("Destination center (output canvas):", dstCenter);
-    console.log("Calculated perspective matrix (H):", matrix);
-    console.log("Transformed center (homogenous coords in source):", transformedCenterHomogenous);
-    console.log("Transformed center (normalized coords in source):", transformedCenterNormalized);
-    console.log("Source trapezoid corners (normalized):", currentSrcPoints);
-    console.log("Approx. center of source trapezoid:", approxSrcCenter);
-    console.log("-----------------------------------------");
-        hasLoggedPerspectiveInfo = true; // Set flag to true after logging
-    }
-    // --- End Verification Logging ---
 
     // Update the texture with the current video frame
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, webcam);
+    try {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, webcam);
+    } catch (error) {
+        console.error('Error updating texture:', error);
+        return;
+    }
     
     // Draw the rectangle
+    const error = gl.getError();
+    if (error !== gl.NO_ERROR) {
+        console.error('WebGL error before draw:', error);
+    }
+    
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+    
+    const drawError = gl.getError();
+    if (drawError !== gl.NO_ERROR) {
+        console.error('WebGL error after draw:', drawError);
+    }
 
     // --- Additional render: Draw a small rotating triangle (Temporarily Commented Out) ---
     // The following code for drawing the triangle used whiteboardCtx, which is no longer
@@ -1061,16 +1078,23 @@ function startWhiteboardMode() {
                     whiteboardCanvas.width = currentWhiteboardDrawingWidth;
                     whiteboardCanvas.height = currentWhiteboardDrawingHeight;
                     
+                    console.log('Setting up whiteboard after transition...');
+                    console.log('Container size for WebGL:', containerSize);
+                    
                     // Force re-initialization of WebGL with proper size
                     if (gl) {
+                        console.log('Updating existing WebGL viewport and rectangle');
                         gl.viewport(0, 0, containerSize, containerSize);
                         setRectangle(gl, 0, 0, containerSize, containerSize);
                     }
                     
                     updateWhiteboardLayout();
                     if (!isWebGLInitialized) {
+                        console.log('Initializing WebGL for the first time');
                         initWebGL();
                         isWebGLInitialized = true;
+                    } else {
+                        console.log('WebGL already initialized');
                     }
                     updateWhiteboardLayout(); // Position and style canvas and handles
                 }
