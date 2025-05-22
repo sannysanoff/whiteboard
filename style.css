@@ -258,6 +258,41 @@ h1 {
     align-items: center;
 }
 
+/* Styles for horizontal setup view layout */
+#setup-view.active {
+    display: flex;
+    flex-direction: row; /* Horizontal layout */
+    align-items: flex-start; /* Align panels to the top */
+    width: 100%; /* Span the full width of its parent (.container's content box) */
+    gap: 20px; /* Space between left and right panels */
+    /* Overrides general .active styles like align-items: center and flex-direction: column */
+}
+
+.setup-left-panel, .setup-right-panel {
+    flex: 1; /* Each panel will share the space equally */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Specific alignment for content within right panel */
+.setup-right-panel {
+    align-items: center; /* Center camera view and button */
+}
+
+/* Adjustments for elements within panels */
+.setup-left-panel > h1 { /* Target direct child h1 of the left panel */
+    text-align: left; /* Override global h1 text-align: center */
+    width: 100%; /* Ensure it uses full panel width for text-align to work as expected */
+}
+
+.setup-right-panel #camera-container {
+    width: 100%; /* Make camera container responsive to panel width */
+    max-width: 100%; /* Override its previous max-width to fit panel */
+    margin: 0 0 2rem 0; /* Adjust margin, remove horizontal auto margin */
+}
+
+/* End of styles for horizontal setup view layout */
+
 @media (max-width: 768px) {
     h1 {
         font-size: 1.5rem;

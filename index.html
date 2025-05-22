@@ -9,59 +9,63 @@
 <body>
     <div class="container">
         <div id="setup-view" class="active">
-            <h1>Set up Desk View</h1>
+            <div class="setup-left-panel">
+                <h1>Set up Desk View</h1>
 
-            <div id="camera-select-container" style="margin-bottom: 1.5rem; width: 100%; max-width: 600px;">
-                <label for="camera-select" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Camera:</label>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <select id="camera-select" style="flex-grow: 1; padding: 10px; border-radius: 5px; border: 1px solid #ddd;"></select>
-                    <button id="refresh-cameras-btn" style="padding: 10px 15px; border-radius: 5px; border: 1px solid #ddd; background-color: #e9e9e9; cursor: pointer;">Refresh</button>
-                </div>
-            </div>
-            
-            <div class="instruction-container">
-                <div class="instruction">
-                    <div class="icon">💻</div>
-                    <div class="text">
-                        <h3>Move Your Device</h3>
-                        <p>Move your device back to create enough space on your desk.</p>
+                <div id="camera-select-container" style="margin-bottom: 1.5rem; width: 100%; max-width: 600px;">
+                    <label for="camera-select" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Camera:</label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <select id="camera-select" style="flex-grow: 1; padding: 10px; border-radius: 5px; border: 1px solid #ddd;"></select>
+                        <button id="refresh-cameras-btn" style="padding: 10px 15px; border-radius: 5px; border: 1px solid #ddd; background-color: #e9e9e9; cursor: pointer;">Refresh</button>
                     </div>
                 </div>
                 
-                <div class="instruction">
-                    <div class="icon">📷</div>
-                    <div class="text">
-                        <h3>Adjust Camera Angle</h3>
-                        <p>Tilt the display to an upright position so you can see your desk.</p>
+                <div class="instruction-container">
+                    <div class="instruction">
+                        <div class="icon">💻</div>
+                        <div class="text">
+                            <h3>Move Your Device</h3>
+                            <p>Move your device back to create enough space on your desk.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="instruction">
+                        <div class="icon">📷</div>
+                        <div class="text">
+                            <h3>Adjust Camera Angle</h3>
+                            <p>Tilt the display to an upright position so you can see your desk.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="instruction">
+                        <div class="icon">🔍</div>
+                        <div class="text">
+                            <h3>Select Viewing Area</h3>
+                            <p>Place your paper within the trapezoid area shown below.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setup-right-panel">
+                <div id="camera-container">
+                    <video id="webcam" autoplay playsinline></video>
+                    <canvas id="overlay-canvas"></canvas>
+                    <div id="trapezoid-overlay"></div>
+                    <!-- Draggable Handles -->
+                    <div class="draggable-handle" id="handle-0"></div>
+                    <div class="draggable-handle" id="handle-1"></div>
+                    <div class="draggable-handle" id="handle-2"></div>
+                    <div class="draggable-handle" id="handle-3"></div>
+                    <div id="slider-container">
+                        <button id="minus-btn">-</button>
+                        <input type="range" id="zoom-slider" min="1" max="100" value="50">
+                        <button id="plus-btn">+</button>
                     </div>
                 </div>
                 
-                <div class="instruction">
-                    <div class="icon">🔍</div>
-                    <div class="text">
-                        <h3>Select Viewing Area</h3>
-                        <p>Place your paper within the trapezoid area shown below.</p>
-                    </div>
-                </div>
+                <button id="start-btn">Start Desk View</button>
             </div>
-            
-            <div id="camera-container">
-                <video id="webcam" autoplay playsinline></video>
-                <canvas id="overlay-canvas"></canvas>
-                <div id="trapezoid-overlay"></div>
-                <!-- Draggable Handles -->
-                <div class="draggable-handle" id="handle-0"></div>
-                <div class="draggable-handle" id="handle-1"></div>
-                <div class="draggable-handle" id="handle-2"></div>
-                <div class="draggable-handle" id="handle-3"></div>
-                <div id="slider-container">
-                    <button id="minus-btn">-</button>
-                    <input type="range" id="zoom-slider" min="1" max="100" value="50">
-                    <button id="plus-btn">+</button>
-                </div>
-            </div>
-            
-            <button id="start-btn">Start Desk View</button>
         </div>
         
         <div id="whiteboard-view">
