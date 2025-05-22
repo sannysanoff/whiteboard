@@ -227,7 +227,7 @@ h1 {
     border: 1px solid rgba(0, 0, 0, 0.1); /* Slightly more defined border for the rectangle shape */
     cursor: ew-resize;
     z-index: 10; 
-    display: none; /* JS controls visibility based on mode */
+    display: block; /* make them visible by default */
     border-radius: 3px;
     /* Opacity is handled by RGBA alpha values directly. Transition border-color too. */
     transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
@@ -347,4 +347,9 @@ h1 {
         padding: 10px 20px;
         font-size: 0.9rem;
     }
+}
+
+/* Only show whiteboard resize handles in whiteboard view */
+#whiteboard-view .whiteboard-resize-handle {
+  display: block;
 }
