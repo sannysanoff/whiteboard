@@ -518,14 +518,14 @@ function updateHtmlHandlesPositions() {
             // 1: Visual Bottom-Left handle, "UR" label
             // 2: Visual Top-Left handle, "BR" label
             // 3: Visual Top-Right handle, "BL" label
-            if (i === 0) { // Visual Bottom-Right ("UL") - Tip observed slightly too right
-                xAdjustment = -1; // Shift handle left by 1px
-            } else if (i === 1) { // Visual Bottom-Left ("UR") - Tip observed slightly too left
-                xAdjustment = 1;  // Shift handle right by 1px
-            } else if (i === 2) { // Visual Top-Left ("BR") - Tip observed too right
+            if (i === 0) { // Visual Bottom-Right ("UL") - Tip observed ~2px too right
                 xAdjustment = -2; // Shift handle left by 2px
-            } else if (i === 3) { // Visual Top-Right ("BL") - Tip observed too left
+            } else if (i === 1) { // Visual Bottom-Left ("UR") - Tip observed ~2px too left
                 xAdjustment = 2;  // Shift handle right by 2px
+            } else if (i === 2) { // Visual Top-Left ("BR") - Tip observed ~4px too right
+                xAdjustment = -4; // Shift handle left by 4px
+            } else if (i === 3) { // Visual Top-Right ("BL") - Tip observed ~4px too left
+                xAdjustment = 4;  // Shift handle right by 4px
             }
 
             handleEl.style.left = `${needleBaseX - 8 + xAdjustment}px`; 
