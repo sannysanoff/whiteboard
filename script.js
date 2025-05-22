@@ -441,8 +441,11 @@ function calculatePerspectiveMatrix() {
     const A = [];
     
     for (let i = 0; i < 4; i++) {
-        const [x, y] = srcPoints[i];
-        const [X, Y] = dstPoints[i];
+        // To compute H_dst_to_src (map output canvas points to source video points):
+        // - The "source" points for this transformation are dstPoints (e.g., [0,0], [1,0] on canvas).
+        // - The "destination" points for this transformation are srcPoints (trapezoid points on video).
+        const [x, y] = dstPoints[i]; // Point from the output canvas rectangle
+        const [X, Y] = srcPoints[i]; // Corresponding point from the source video trapezoid
         
         // Each point correspondence gives two equations
         A.push([
