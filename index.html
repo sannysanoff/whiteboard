@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whiteboard Camera</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div id="setup-view" class="active">
+            <h1>Set up Desk View</h1>
+            
+            <div class="instruction-container">
+                <div class="instruction">
+                    <div class="icon">💻</div>
+                    <div class="text">
+                        <h3>Move Your Device</h3>
+                        <p>Move your device back to create enough space on your desk.</p>
+                    </div>
+                </div>
+                
+                <div class="instruction">
+                    <div class="icon">📷</div>
+                    <div class="text">
+                        <h3>Adjust Camera Angle</h3>
+                        <p>Tilt the display to an upright position so you can see your desk.</p>
+                    </div>
+                </div>
+                
+                <div class="instruction">
+                    <div class="icon">🔍</div>
+                    <div class="text">
+                        <h3>Select Viewing Area</h3>
+                        <p>Place your paper within the trapezoid area shown below.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="camera-container">
+                <video id="webcam" autoplay playsinline></video>
+                <canvas id="overlay-canvas"></canvas>
+                <div id="trapezoid-overlay"></div>
+                <div id="slider-container">
+                    <button id="minus-btn">-</button>
+                    <input type="range" id="zoom-slider" min="1" max="100" value="50">
+                    <button id="plus-btn">+</button>
+                </div>
+            </div>
+            
+            <button id="start-btn">Start Desk View</button>
+        </div>
+        
+        <div id="whiteboard-view">
+            <div id="canvas-container">
+                <canvas id="whiteboard-canvas"></canvas>
+            </div>
+            <div class="controls">
+                <button id="back-btn">Back to Setup</button>
+                <button id="clear-btn">Clear</button>
+                <button id="save-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WebGL shader scripts -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec2 a_position;
+        attribute vec2 a_texCoord;
+        
+        uniform vec2 u_resolution;
+        
+        varying vec2 v_texCoord;
+        
+        void main() {
+            // Convert from pixels to 0.0 to 1.0
+            vec2 zeroToOne = a_position / u_resolution;
+            
+            // Convert from 0->1 to 0->2
+            vec2 zeroToTwo = zeroToOne * 2.0;
+            
+            // Convert from 0->2 to -1->+1 (clipspace)
+            vec2 clipSpace = zeroToTwo - 1.0;
+            
+            gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+            
+            // Pass the texCoord to the fragment shader
+            v_texCoord = a_texCoord;
+        }
+    </script>
+    
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        
+        // Our texture
+        uniform sampler2D u_image;
+        
+        // The texCoords passed in from the vertex shader
+        varying vec2 v_texCoord;
+        
+        // Perspective transformation matrix
+        uniform mat3 u_matrix;
+        
+        void main() {
+            // Apply perspective transformation
+            vec3 coord = u_matrix * vec3(v_texCoord, 1.0);
+            vec2 transformedCoord = coord.xy / coord.z;
+            
+            // Check if the transformed coordinate is within bounds
+            if (transformedCoord.x >= 0.0 && transformedCoord.x <= 1.0 && 
+                transformedCoord.y >= 0.0 && transformedCoord.y <= 1.0) {
+                gl_FragColor = texture2D(u_image, transformedCoord);
+            } else {
+                gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+            }
+        }
+    </script>
+    
+    <script src="script.js"></script>
+</body>
+</html>
