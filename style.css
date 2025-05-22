@@ -115,6 +115,7 @@ h1 {
     cursor: grabbing;
 }
 
+/* Default vertical needle (for top corners) */
 .draggable-handle::before {
     content: '';
     position: absolute;
@@ -142,6 +143,32 @@ h1 {
     border-radius: 50%;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     z-index: 11;
+}
+
+/* Bottom-left corner - tilted left */
+#handle-1::before {
+    bottom: 2px;
+    left: 25%;
+    transform: translateX(-50%) rotate(-30deg);
+}
+
+#handle-1::after {
+    top: 0;
+    left: 25%;
+    transform: translateX(-50%);
+}
+
+/* Bottom-right corner - tilted right */
+#handle-0::before {
+    bottom: 2px;
+    left: 75%;
+    transform: translateX(-50%) rotate(30deg);
+}
+
+#handle-0::after {
+    top: 0;
+    left: 75%;
+    transform: translateX(-50%);
 }
 
 .draggable-handle:active::before {

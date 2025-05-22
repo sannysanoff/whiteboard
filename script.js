@@ -455,6 +455,22 @@ function calculateTrapezoidPoints(zoomFactor = 1.0) {
     updateHtmlHandlesPositions();
 }
 
+// Get needle tip offset for each handle type
+function getNeedleTipOffset(handleIndex) {
+    switch(handleIndex) {
+        case 0: // Bottom-right (BR) - tilted right
+            return { x: 4, y: 38 }; // Needle tip is offset right and slightly up
+        case 1: // Bottom-left (BL) - tilted left  
+            return { x: -4, y: 38 }; // Needle tip is offset left and slightly up
+        case 2: // Top-left (UL) - vertical
+            return { x: 0, y: 40 }; // Needle tip is straight down
+        case 3: // Top-right (UR) - vertical
+            return { x: 0, y: 40 }; // Needle tip is straight down
+        default:
+            return { x: 0, y: 40 };
+    }
+}
+
 // Update positions of HTML handles based on trapezoidPoints
 function updateHtmlHandlesPositions() {
     if (!videoWidth || !videoHeight || htmlHandles.length === 0) return;
@@ -472,9 +488,12 @@ function updateHtmlHandlesPositions() {
             const cssX = (canvasP[0] / videoWidth) * containerRect.width;
             const cssY = (canvasP[1] / videoHeight) * containerRect.height;
             
+            // Get needle tip offset for this handle type
+            const offset = getNeedleTipOffset(i);
+            
             // Position the pin so the needle tip is at the exact coordinate
-            handleEl.style.left = `${cssX - 8}px`; // 8px = half of pin width (16px)
-            handleEl.style.top = `${cssY - 40}px`; // 40px = full pin height, so needle tip is at cssY
+            handleEl.style.left = `${cssX - 8 - offset.x}px`; // 8px = half of pin width, plus needle offset
+            handleEl.style.top = `${cssY - offset.y}px`; // Full offset to position needle tip at cssY
             
             // Position the label above the pin
             const labelEl = handleEl.querySelector('.corner-label');
@@ -636,17 +655,20 @@ function handleTrapezoidInteractionMove(event) {
     let newCssX = clientX - containerRect.left;
     let newCssY = clientY - containerRect.top;
 
-    // Update the HTML handle's position so the circle is at the mouse position
-    draggedHtmlHandle.style.left = `${newCssX - 8}px`; // 8px = half of pin width
-    draggedHtmlHandle.style.top = `${newCssY - 16}px`; // 16px = circle center position
-    
     // Find the index of the dragged handle
     const cornerIndex = htmlHandles.indexOf(draggedHtmlHandle);
     if (cornerIndex === -1) return; // Should not happen
 
+    // Get needle tip offset for this handle type
+    const offset = getNeedleTipOffset(cornerIndex);
+    
+    // Update the HTML handle's position so the circle is at the mouse position
+    draggedHtmlHandle.style.left = `${newCssX - 8}px`; // 8px = half of pin width
+    draggedHtmlHandle.style.top = `${newCssY - 16}px`; // 16px = circle center position
+    
     // Convert the circle position to needle tip position, then to canvas coordinates
-    const needleTipCssX = newCssX;
-    const needleTipCssY = newCssY + 24; // 24px down from circle center to needle tip
+    const needleTipCssX = newCssX + offset.x;
+    const needleTipCssY = newCssY + (offset.y - 16); // offset.y is from top of handle, subtract circle center offset
     const canvasX = (needleTipCssX / containerRect.width) * videoWidth;
     const canvasY = (needleTipCssY / containerRect.height) * videoHeight;
 
