@@ -34,6 +34,12 @@ h1 {
 .flipper-container {
     width: 100%;
     max-width: 600px;
+    /* Adjusted to align with the top of the camera container on the right.
+       Calculated as: (h1 line-height-derived-height + h1 margin-bottom)
+       h1 font-size: 2rem, assumed line-height: 1.2 => h1 height ~2.4rem
+       h1 margin-bottom: 1.5rem
+       Total margin-top: 2.4rem + 1.5rem = 3.9rem */
+    margin-top: 3.9rem;
     margin-bottom: 2rem;
 }
 
@@ -611,6 +617,14 @@ h1 {
 @media (max-width: 768px) {
     h1 {
         font-size: 1.5rem;
+    }
+
+    .flipper-container {
+        /* Adjust margin-top for smaller screens based on h1 font-size change.
+           h1 font-size: 1.5rem, assumed line-height: 1.2 => h1 height ~1.8rem
+           h1 margin-bottom: 1.5rem
+           Total margin-top: 1.8rem + 1.5rem = 3.3rem */
+        margin-top: 3.3rem;
     }
     
     .instruction {
