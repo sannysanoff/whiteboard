@@ -529,13 +529,6 @@ h1 {
     align-items: center; /* Center camera view and button */
 }
 
-/* Adjustments for elements within panels */
-.setup-left-panel > h1 { /* Target direct child h1 of the left panel */
-    text-align: center; /* Center the text of the title in the left panel */
-    width: 100%; /* Ensure it uses full panel width for text-align to work as expected */
-    max-width: 600px; /* Align with other centered content's max-width */
-}
-
 .setup-right-panel #camera-container {
     width: 100%; /* Make camera container responsive to panel width */
     max-width: 100%; /* Override its previous max-width to fit panel */
