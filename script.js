@@ -9,6 +9,7 @@ let gl, program;
 let positionLocation, texCoordLocation;
 let matrixLocation, resolutionLocation;
 let currentPerspectiveMatrix = null; // To store the calculated perspective matrix
+let currentSrcPoints = null; // To store the source points for logging
 
 // Global variable to control initial phase ('setup' or 'whiteboard')
 // Set to 'whiteboard' for debugging purposes as requested.
@@ -161,10 +162,11 @@ function updatePerspectiveMatrix() {
         hasLoggedPerspectiveInfo = false; // Reset log flag so it logs for the new matrix
         const transformData = calculatePerspectiveMatrix();
         currentPerspectiveMatrix = transformData.matrix;
-        // Note: srcPointsForLogging for external use would be: currentSrcPointsForLogging = transformData.srcPoints;
+        currentSrcPoints = transformData.srcPoints; // Store srcPoints for logging
     } else {
         // Not enough data to calculate, set to identity (no transformation)
         currentPerspectiveMatrix = [1,0,0, 0,1,0, 0,0,1];
+        currentSrcPoints = []; // Default to empty array
         console.warn("Not enough data for perspective matrix, using identity.");
     }
 }
@@ -407,7 +409,7 @@ function processVideoFrame() {
 
     // --- Verification Logging (runs only once) ---
     // Logging uses the original row-major 'matrix' for consistency with manual calculation.
-    if (!hasLoggedPerspectiveInfo) {
+    if (!hasLoggedPerspectiveInfo && currentSrcPoints && currentSrcPoints.length === 4) { // Ensure currentSrcPoints is valid
         const dstCenter = [0.5, 0.5]; // Center of the destination (output) canvas
     
         // Manually multiply: H * [dstCenter[0], dstCenter[1], 1.0]^T
@@ -423,12 +425,12 @@ function processVideoFrame() {
     // Calculate approximate center of the source trapezoid for comparison
     let avgSrcX = 0;
     let avgSrcY = 0;
-    for (let i = 0; i < srcPointsForLogging.length; i++) {
-        avgSrcX += srcPointsForLogging[i][0];
-        avgSrcY += srcPointsForLogging[i][1];
+    for (let i = 0; i < currentSrcPoints.length; i++) {
+        avgSrcX += currentSrcPoints[i][0];
+        avgSrcY += currentSrcPoints[i][1];
     }
-    avgSrcX /= srcPointsForLogging.length;
-    avgSrcY /= srcPointsForLogging.length;
+    avgSrcX /= currentSrcPoints.length;
+    avgSrcY /= currentSrcPoints.length;
     const approxSrcCenter = [avgSrcX, avgSrcY];
 
     console.log("--- Perspective Transformation Verification ---");
@@ -436,7 +438,7 @@ function processVideoFrame() {
     console.log("Calculated perspective matrix (H):", matrix);
     console.log("Transformed center (homogenous coords in source):", transformedCenterHomogenous);
     console.log("Transformed center (normalized coords in source):", transformedCenterNormalized);
-    console.log("Source trapezoid corners (normalized):", srcPointsForLogging);
+    console.log("Source trapezoid corners (normalized):", currentSrcPoints);
     console.log("Approx. center of source trapezoid:", approxSrcCenter);
     console.log("-----------------------------------------");
         hasLoggedPerspectiveInfo = true; // Set flag to true after logging
