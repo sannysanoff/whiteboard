@@ -833,9 +833,9 @@ function handleTrapezoidInteractionMove(event) {
             const prevIndex = (draggedTrapezoidIndex + 3) % 4; // Previous corner (wrapping around)
             const nextIndex = (draggedTrapezoidIndex + 1) % 4; // Next corner (wrapping around)
             
-            // Get the current dragged corner position in video coordinates
-            const currentCornerX = magnifierVideoX; // This is where the cursor/center is
-            const currentCornerY = magnifierVideoY;
+            // Get the current dragged corner position in video coordinates from trapezoid points
+            const currentCornerX = trapezoidPoints[draggedTrapezoidIndex][0];
+            const currentCornerY = trapezoidPoints[draggedTrapezoidIndex][1];
             
             // Convert neighbor corners to magnifier coordinates relative to current corner
             const prevCornerVideoX = trapezoidPoints[prevIndex][0];
