@@ -1288,22 +1288,21 @@ function doWhiteboardResize(event) {
     newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
 
     if (newWidth !== currentWhiteboardDrawingWidth) {
-        // Maintain 1:1 square ratio
-        const aspectRatio = 1; // Maintain square during resizing
+        // Keep height constant, only change width (allow aspect ratio to change)
         currentWhiteboardDrawingWidth = newWidth;
-        currentWhiteboardDrawingHeight = newWidth / aspectRatio;
-        whiteboardCanvas.width = currentWhiteboardDrawingWidth; // Update drawing buffer
-        whiteboardCanvas.height = currentWhiteboardDrawingHeight; // Update height maintaining aspect ratio
+        // Height remains unchanged - no need to recalculate it
+        whiteboardCanvas.width = currentWhiteboardDrawingWidth; // Update drawing buffer width
+        // whiteboardCanvas.height stays the same
 
         // Update WebGL viewport and uniforms
         if (gl && program) { // Check if WebGL is initialized
-            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            gl.viewport(0, 0, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
             gl.useProgram(program); // Ensure program is active for uniform setting
-            gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
+            gl.uniform2f(resolutionLocation, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
             
-            // Re-set the rectangle for drawing (as its dimensions are based on canvas width/height)
+            // Re-set the rectangle for drawing with new width but same height
             gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); // Ensure correct buffer is bound
-            setRectangle(gl, 0, 0, gl.canvas.width, gl.canvas.height);
+            setRectangle(gl, 0, 0, currentWhiteboardDrawingWidth, currentWhiteboardDrawingHeight);
         }
         updateWhiteboardLayout(); // Update CSS and handle positions
     }
