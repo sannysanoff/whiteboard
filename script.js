@@ -1244,15 +1244,20 @@ function updateWhiteboardLayout() {
     whiteboardCanvas.style.width = currentWhiteboardDrawingWidth + 'px';
     whiteboardCanvas.style.height = currentWhiteboardDrawingHeight + 'px';
 
-    // Position handles
+    // Position handles relative to the actual canvas position
     const handleWidth = 8;
     const handleHeight = 70;
     
-    wbLeftHandle.style.top = `${(containerHeight - handleHeight) / 2}px`;
-    wbLeftHandle.style.left = `${(containerWidth - currentWhiteboardDrawingWidth) / 2 - handleWidth}px`;
+    // Calculate canvas position within container (centered by flexbox)
+    const canvasLeft = (containerWidth - currentWhiteboardDrawingWidth) / 2;
+    const canvasTop = (containerHeight - currentWhiteboardDrawingHeight) / 2;
     
-    wbRightHandle.style.top = wbLeftHandle.style.top;
-    wbRightHandle.style.left = `${(containerWidth + currentWhiteboardDrawingWidth) / 2}px`;
+    // Position handles adjacent to the canvas edges
+    wbLeftHandle.style.top = `${canvasTop + (currentWhiteboardDrawingHeight - handleHeight) / 2}px`;
+    wbLeftHandle.style.left = `${canvasLeft - handleWidth}px`;
+    
+    wbRightHandle.style.top = `${canvasTop + (currentWhiteboardDrawingHeight - handleHeight) / 2}px`;
+    wbRightHandle.style.left = `${canvasLeft + currentWhiteboardDrawingWidth}px`;
 }
 
 function startWhiteboardResize(event) {
