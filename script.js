@@ -484,6 +484,8 @@ function getHandleAngle(handleIndex) {
 function updateHtmlHandlesPositions() {
     if (!videoWidth || !videoHeight || htmlHandles.length === 0) return;
 
+    console.log('updateHtmlHandlesPositions running, timestamp:', Date.now()); // DEBUG LOG
+
     const cameraContainer = document.getElementById('camera-container');
     if (!cameraContainer) return;
     const containerRect = cameraContainer.getBoundingClientRect();
@@ -495,8 +497,24 @@ function updateHtmlHandlesPositions() {
 
         if (handleEl && canvasP) {
             // Convert canvas coordinates to CSS pixel values relative to the container
-            const needleTipX = (canvasP[0] / videoWidth) * containerRect.width;
-            const needleTipY = (canvasP[1] / videoHeight) * containerRect.height;
+            let needleTipX = (canvasP[0] / videoWidth) * containerRect.width;
+            let needleTipY = (canvasP[1] / videoHeight) * containerRect.height;
+
+            // Apply adjustments to the target tip position itself
+            // i is the htmlHandles index:
+            // 0: Visual Bottom-Right handle, "UL" label
+            // 1: Visual Bottom-Left handle, "UR" label
+            // 2: Visual Top-Left handle, "BR" label
+            // 3: Visual Top-Right handle, "BL" label
+            if (i === 0) { // Visual Bottom-Right ("UL") - Tip observed ~2px too right, so target tip needs to be 2px left
+                needleTipX -= 2; 
+            } else if (i === 1) { // Visual Bottom-Left ("UR") - Tip observed ~2px too left, so target tip needs to be 2px right
+                needleTipX += 2;
+            } else if (i === 2) { // Visual Top-Left ("BR") - Tip observed ~4px too right, so target tip needs to be 4px left
+                needleTipX -= 4;
+            } else if (i === 3) { // Visual Top-Right ("BL") - Tip observed ~4px too left, so target tip needs to be 4px right
+                needleTipX += 4;
+            }
             
             // Get angle for this handle type
             const angle = getHandleAngle(i);
@@ -504,31 +522,14 @@ function updateHtmlHandlesPositions() {
             // Calculate needle length
             const needleLength = 40;
             
-            // Calculate needle base position using angle and length
+            // Calculate needle base position using angle and (potentially adjusted) tip coordinates
             const needleBaseX = needleTipX - Math.sin(angle) * needleLength;
             const needleBaseY = needleTipY - Math.cos(angle) * needleLength;
             
             // Position the handle element.
             // needleBaseX/Y is the coordinate of the needle's pivot point.
             // The needle pivots at (8px, 0px) local to the handleEl.
-            
-            let xAdjustment = 0;
-            // i is the htmlHandles index, which corresponds to:
-            // 0: Visual Bottom-Right handle, "UL" label
-            // 1: Visual Bottom-Left handle, "UR" label
-            // 2: Visual Top-Left handle, "BR" label
-            // 3: Visual Top-Right handle, "BL" label
-            if (i === 0) { // Visual Bottom-Right ("UL") - Tip observed ~2px too right
-                xAdjustment = -2; // Shift handle left by 2px
-            } else if (i === 1) { // Visual Bottom-Left ("UR") - Tip observed ~2px too left
-                xAdjustment = 2;  // Shift handle right by 2px
-            } else if (i === 2) { // Visual Top-Left ("BR") - Tip observed ~4px too right
-                xAdjustment = -4; // Shift handle left by 4px
-            } else if (i === 3) { // Visual Top-Right ("BL") - Tip observed ~4px too left
-                xAdjustment = 4;  // Shift handle right by 4px
-            }
-
-            handleEl.style.left = `${needleBaseX - 8 + xAdjustment}px`; 
+            handleEl.style.left = `${needleBaseX - 8}px`; 
             handleEl.style.top = `${needleBaseY}px`;
             
             // Position and rotate the needle element
