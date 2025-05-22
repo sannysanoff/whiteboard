@@ -286,8 +286,10 @@ async function initWebcam(deviceId = null) {
             
             // --- Whiteboard Canvas initial drawing surface size ---
             const canvasContainer = document.getElementById('canvas-container');
-            currentWhiteboardDrawingWidth = Math.min(canvasContainer.clientWidth, canvasContainer.clientHeight * aspectRatio);
-            currentWhiteboardDrawingHeight = currentWhiteboardDrawingWidth / aspectRatio;
+            // Use 1:1 aspect ratio for the whiteboard
+            const containerSize = Math.min(canvasContainer.clientWidth, canvasContainer.clientHeight);
+            currentWhiteboardDrawingWidth = containerSize;
+            currentWhiteboardDrawingHeight = containerSize;
             whiteboardCanvas.width = currentWhiteboardDrawingWidth;
             whiteboardCanvas.height = currentWhiteboardDrawingHeight;
 
@@ -1159,8 +1161,8 @@ function updateWhiteboardLayout() {
     const containerWidth = canvasContainer.clientWidth;
     const containerHeight = canvasContainer.clientHeight;
 
-    // Calculate maximum possible dimensions while maintaining aspect ratio
-    const aspectRatio = videoWidth / videoHeight;
+    // Calculate maximum possible dimensions with 1:1 aspect ratio
+    const aspectRatio = 1; // Force 1:1 ratio
     const maxWidth = Math.min(containerWidth, containerHeight * aspectRatio);
     const maxHeight = Math.min(containerHeight, containerWidth / aspectRatio);
 
@@ -1225,8 +1227,8 @@ function doWhiteboardResize(event) {
     newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
 
     if (newWidth !== currentWhiteboardDrawingWidth) {
-        // Maintain aspect ratio based on original video dimensions
-        const aspectRatio = videoWidth / videoHeight;
+        // Maintain 1:1 square ratio
+        const aspectRatio = 1; // Maintain square during resizing
         currentWhiteboardDrawingWidth = newWidth;
         currentWhiteboardDrawingHeight = newWidth / aspectRatio;
         whiteboardCanvas.width = currentWhiteboardDrawingWidth; // Update drawing buffer
