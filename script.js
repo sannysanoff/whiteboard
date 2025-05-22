@@ -394,8 +394,14 @@ function processVideoFrame() {
 
     // Set the matrix uniform.
     // currentPerspectiveMatrix is row-major.
-    // Send it to GL and ask GL to transpose it.
-    gl.uniformMatrix3fv(matrixLocation, true, matrix);
+    // WebGL 1.0 (ES 2.0) requires transpose to be false.
+    // Manually transpose the matrix to column-major form.
+    const matrixTransposed = [
+        matrix[0], matrix[3], matrix[6], // Column 0
+        matrix[1], matrix[4], matrix[7], // Column 1
+        matrix[2], matrix[5], matrix[8]  // Column 2
+    ];
+    gl.uniformMatrix3fv(matrixLocation, false, matrixTransposed);
 
     // --- Verification Logging (runs only once) ---
     // Logging uses the original row-major 'matrix' for consistency with manual calculation.
