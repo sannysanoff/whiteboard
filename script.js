@@ -79,7 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Initialize webcam and populate camera list
-    populateCameraList(); // This will call initWebcam after populating
+    // initWebcam will now be called first, and it will call populateCameraList after stream is active.
+    initWebcam(); 
 
     // Add resize listener to update handle positions
     window.addEventListener('resize', updateHtmlHandlesPositions);
@@ -96,30 +97,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Populate camera selection dropdown
+// This function is now called AFTER initWebcam has successfully started a stream.
 async function populateCameraList() {
-    console.log('Beginning webcam detection (populateCameraList)...');
+    console.log('Populating camera list (post-permission)...');
     let videoDevices = [];
-    const maxAttempts = 3;
+    const maxAttempts = 3; // Polling can still be useful for devices that enumerate slowly.
     const delayBetweenAttempts = 1000; // 1 second
 
     try {
-        // First, try to get user media to ensure permissions are granted.
-        // This helps in getting more descriptive labels from enumerateDevices.
-        console.log('Attempting initial getUserMedia for permission priming...');
-        try {
-            const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            // Immediately stop the tracks as this stream is only for permission priming.
-            tempStream.getTracks().forEach(track => track.stop());
-            console.log('Initial getUserMedia successful, tracks stopped.');
-        } catch (permissionError) {
-            // Log the error, but proceed to enumerateDevices.
-            // It might still work, or list devices without labels, or fail if permissions are strictly denied.
-            console.warn('Error requesting initial camera access for permissions (this is for improving device labels):', permissionError.name, permissionError.message);
-            // If permission is denied here, enumerateDevices might return less info or be empty.
-            // The main initWebcam call later will handle critical camera access errors and alert the user.
-        }
-
-        // Poll for devices
+        // Poll for devices. Permissions should already be granted by initWebcam.
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             console.log(`Enumerating devices, attempt ${attempt}/${maxAttempts}...`);
             const devices = await navigator.mediaDevices.enumerateDevices();
@@ -128,8 +114,6 @@ async function populateCameraList() {
             videoDevices = devices.filter(device => device.kind === 'videoinput');
             console.log(`Attempt ${attempt} - Filtered video input devices:`, videoDevices.map(d => ({ label: d.label, deviceId: d.deviceId, kind: d.kind })));
 
-            // If devices are found, or it's the last attempt, break the loop.
-            // We check if any device has a label, as sometimes devices appear without labels initially.
             const hasLabeledDevices = videoDevices.some(device => device.label && device.label !== '');
             if (videoDevices.length > 0 && hasLabeledDevices) {
                 console.log(`Found labeled video devices on attempt ${attempt}. Proceeding.`);
@@ -139,7 +123,6 @@ async function populateCameraList() {
                 console.log(`Found video devices (some may be unlabeled) on final attempt ${attempt}. Proceeding.`);
                 break;
             }
-
 
             if (attempt < maxAttempts) {
                 console.log(`Waiting ${delayBetweenAttempts}ms before next attempt...`);
@@ -154,34 +137,26 @@ async function populateCameraList() {
             option.textContent = 'No cameras found';
             cameraSelect.appendChild(option);
             cameraSelect.disabled = true;
-            // Optionally, alert the user or display a more prominent message
-            console.warn("No video input devices found.");
-            // Attempt to initialize webcam with default constraints if no specific devices listed
-            // This might still work if browser provides a default without listing it.
-            initWebcam(); 
-            return;
+            console.warn("populateCameraList: No video input devices found even after initWebcam likely succeeded.");
+            return; // initWebcam handles the stream; this function just updates UI.
         }
 
         cameraSelect.disabled = false;
         videoDevices.forEach((device, index) => {
             const option = document.createElement('option');
             option.value = device.deviceId;
-            option.textContent = device.label || `Camera ${index + 1}`;
+            option.textContent = device.label || `Camera ${index + 1} (No label)`;
             cameraSelect.appendChild(option);
         });
 
-        // Initialize webcam with the first camera in the list by default
-        if (cameraSelect.options.length > 0) {
-            initWebcam(cameraSelect.value);
-        } else {
-            // Fallback if somehow list is empty after filtering (should be caught by videoDevices.length === 0)
-            initWebcam();
-        }
+        // Note: We no longer call initWebcam from here. 
+        // The active camera is managed by the initial initWebcam call and the 'change' event listener.
 
     } catch (error) {
         console.error('Error populating camera list:', error);
-        // Fallback to default initWebcam if enumeration fails
-        initWebcam();
+        cameraSelect.innerHTML = '<option>Error loading cameras</option>';
+        cameraSelect.disabled = true;
+        // Do not call initWebcam from here.
     }
 }
 
@@ -210,7 +185,7 @@ async function initWebcam(deviceId = null) {
         webcam.srcObject = stream;
         
         // Wait for video metadata to load
-        webcam.onloadedmetadata = () => {
+        webcam.onloadedmetadata = async () => { // Made async to await populateCameraList
             videoWidth = webcam.videoWidth;
             videoHeight = webcam.videoHeight;
             
@@ -219,6 +194,31 @@ async function initWebcam(deviceId = null) {
             overlayCanvas.height = videoHeight;
             whiteboardCanvas.width = videoWidth;
             whiteboardCanvas.height = videoHeight;
+
+            // Populate camera list AFTER stream is active and permissions are granted
+            await populateCameraList();
+
+            // Ensure the camera select dropdown reflects the currently active stream's deviceId
+            const currentStream = webcam.srcObject;
+            if (currentStream) {
+                const videoTracks = currentStream.getVideoTracks();
+                if (videoTracks.length > 0) {
+                    const currentTrackSettings = videoTracks[0].getSettings();
+                    if (currentTrackSettings.deviceId && cameraSelect.options.length > 0) {
+                        let foundInSelect = false;
+                        for (let i = 0; i < cameraSelect.options.length; i++) {
+                            if (cameraSelect.options[i].value === currentTrackSettings.deviceId) {
+                                cameraSelect.value = currentTrackSettings.deviceId;
+                                foundInSelect = true;
+                                break;
+                            }
+                        }
+                        if (!foundInSelect) {
+                             console.warn("Active camera's deviceId not found in the populated list. The dropdown might show a different default selection.");
+                        }
+                    }
+                }
+            }
             
             // Calculate trapezoid points based on video dimensions
             calculateTrapezoidPoints(); // This will also call updateHtmlHandlesPositions
@@ -248,6 +248,9 @@ async function initWebcam(deviceId = null) {
     } catch (error) {
         console.error('Error accessing webcam:', error);
         alert('Unable to access webcam. Please ensure you have granted camera permissions.');
+        // If webcam access fails, disable camera selection as it's non-functional
+        cameraSelect.innerHTML = '<option>Camera access failed</option>';
+        cameraSelect.disabled = true;
     }
 }
 
