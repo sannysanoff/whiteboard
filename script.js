@@ -104,7 +104,7 @@ async function initWebcam() {
                             initWebGL();
                             isWebGLInitialized = true;
                         });
-                    }, 100); // 100ms delay, can be adjusted
+                    }, 2000); // 2000ms delay
                 }
             }
         };
