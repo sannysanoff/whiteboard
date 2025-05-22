@@ -200,10 +200,14 @@ h1 {
 
 #whiteboard-view {
     display: none;
-    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     height: 100vh;
+    width: 100vw;
     flex-direction: column;
-    /* align-self: stretch; /* No longer needed as parent .container uses align-items: stretch */
 }
 
 #canvas-container {
@@ -211,13 +215,17 @@ h1 {
     position: relative;
     overflow: visible; /* Changed from hidden to visible */
     background-color: #f0f0f0;
+    width: 100%;
+    height: calc(100vh - 60px); /* Account for control bar */
 }
 
 #whiteboard-canvas {
-    /* width and height will be set by JS via style attribute */
+    width: 100% !important;
+    height: 100% !important;
     background-color: white;
-    position: absolute; /* For centering and explicit sizing */
-    /* top, left will be set by JS via style attribute */
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 .whiteboard-resize-handle {

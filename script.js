@@ -272,10 +272,11 @@ async function initWebcam(deviceId = null) {
             overlayCanvas.height = videoHeight;
             
             // --- Whiteboard Canvas initial drawing surface size ---
-            whiteboardCanvas.width = videoWidth;
-            whiteboardCanvas.height = videoHeight;
-            currentWhiteboardDrawingWidth = videoWidth; 
-            currentWhiteboardDrawingHeight = videoHeight;
+            const canvasContainer = document.getElementById('canvas-container');
+            currentWhiteboardDrawingWidth = canvasContainer.clientWidth;
+            currentWhiteboardDrawingHeight = canvasContainer.clientHeight;
+            whiteboardCanvas.width = currentWhiteboardDrawingWidth;
+            whiteboardCanvas.height = currentWhiteboardDrawingHeight;
 
             // Populate camera list AFTER stream is active and permissions are granted
             await populateCameraList();
@@ -1207,8 +1208,12 @@ function doWhiteboardResize(event) {
     newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
 
     if (newWidth !== currentWhiteboardDrawingWidth) {
+        // Maintain aspect ratio based on original video dimensions
+        const aspectRatio = videoWidth / videoHeight;
         currentWhiteboardDrawingWidth = newWidth;
+        currentWhiteboardDrawingHeight = newWidth / aspectRatio;
         whiteboardCanvas.width = currentWhiteboardDrawingWidth; // Update drawing buffer
+        whiteboardCanvas.height = currentWhiteboardDrawingHeight; // Update height maintaining aspect ratio
 
         // Update WebGL viewport and uniforms
         if (gl && program) { // Check if WebGL is initialized
