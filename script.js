@@ -472,9 +472,9 @@ function updateHtmlHandlesPositions() {
             const cssX = (canvasP[0] / videoWidth) * containerRect.width;
             const cssY = (canvasP[1] / videoHeight) * containerRect.height;
             
-            // Position the pin so the needle tip (bottom center) is at the exact coordinate
+            // Position the pin so the circle is at the coordinate, needle extends down from it
             handleEl.style.left = `${cssX - 8}px`; // 8px = half of pin width (16px)
-            handleEl.style.top = `${cssY - 40}px`; // 40px = full pin height, so tip is at cssY
+            handleEl.style.top = `${cssY - 16}px`; // 16px = circle center position, needle extends down
             
             // Position the label above the pin
             const labelEl = handleEl.querySelector('.corner-label');
@@ -636,17 +636,19 @@ function handleTrapezoidInteractionMove(event) {
     let newCssX = clientX - containerRect.left;
     let newCssY = clientY - containerRect.top;
 
-    // Update the HTML handle's position so the needle tip is at the mouse position
+    // Update the HTML handle's position so the circle is at the mouse position
     draggedHtmlHandle.style.left = `${newCssX - 8}px`; // 8px = half of pin width
-    draggedHtmlHandle.style.top = `${newCssY - 40}px`; // 40px = full pin height
+    draggedHtmlHandle.style.top = `${newCssY - 16}px`; // 16px = circle center position
     
     // Find the index of the dragged handle
     const cornerIndex = htmlHandles.indexOf(draggedHtmlHandle);
     if (cornerIndex === -1) return; // Should not happen
 
-    // Convert the needle tip position to canvas coordinates
-    const canvasX = (newCssX / containerRect.width) * videoWidth;
-    const canvasY = (newCssY / containerRect.height) * videoHeight;
+    // Convert the circle position to needle tip position, then to canvas coordinates
+    const needleTipCssX = newCssX;
+    const needleTipCssY = newCssY + 24; // 24px down from circle center to needle tip
+    const canvasX = (needleTipCssX / containerRect.width) * videoWidth;
+    const canvasY = (needleTipCssY / containerRect.height) * videoHeight;
 
     // Update the corresponding trapezoidPoint. No clamping.
     trapezoidPoints[cornerIndex][0] = canvasX;
