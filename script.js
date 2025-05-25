@@ -1560,16 +1560,33 @@ function animateHandlesFlashZoom() {
         }
     });
     
-    // Also animate the whiteboard resize handles
+    // Also animate the whiteboard resize handles and show flashing arrows
     if (wbLeftHandle && wbRightHandle) {
         setTimeout(() => {
             wbLeftHandle.classList.add('whiteboard-handle-intro');
             wbRightHandle.classList.add('whiteboard-handle-intro');
-            
+
+            // Show and animate the arrows
+            const leftArrow = document.getElementById('wb-left-arrow');
+            const rightArrow = document.getElementById('wb-right-arrow');
+            if (leftArrow) {
+                leftArrow.classList.add('flashing');
+            }
+            if (rightArrow) {
+                rightArrow.classList.add('flashing');
+            }
+
             // Remove the class after animation completes
             setTimeout(() => {
                 wbLeftHandle.classList.remove('whiteboard-handle-intro');
                 wbRightHandle.classList.remove('whiteboard-handle-intro');
+                // Hide the arrows after the animation
+                if (leftArrow) {
+                    leftArrow.classList.remove('flashing');
+                }
+                if (rightArrow) {
+                    rightArrow.classList.remove('flashing');
+                }
             }, 2500);
         }, 800); // Start after the trapezoid handles begin their animation
     }

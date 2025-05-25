@@ -387,6 +387,63 @@ h1 {
     border-radius: 3px;
     /* Opacity is handled by RGBA alpha values directly. Transition border-color too. */
     transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, transform 0.3s ease-in-out;
+    overflow: visible;
+}
+
+/* Resize arrow for whiteboard handles */
+.resize-arrow {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 38px;
+    color: #007aff;
+    opacity: 0;
+    pointer-events: none;
+    font-weight: bold;
+    text-shadow: 0 0 8px #fff, 0 0 16px #007aff88;
+    transition: opacity 0.3s;
+    z-index: 100;
+    user-select: none;
+    /* Will be animated in/out via JS */
+}
+
+.resize-arrow.flashing {
+    opacity: 1;
+    animation: resizeArrowFlash 2.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes resizeArrowFlash {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.7) rotate(-10deg);
+        color: #007aff;
+        text-shadow: 0 0 8px #fff, 0 0 16px #007aff88;
+    }
+    10% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.3) rotate(0deg);
+        color: #007aff;
+        text-shadow: 0 0 16px #fff, 0 0 32px #007affcc;
+    }
+    40% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1) rotate(0deg);
+        color: #007aff;
+        text-shadow: 0 0 12px #fff, 0 0 24px #007aff99;
+    }
+    70% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2) rotate(0deg);
+        color: #007aff;
+        text-shadow: 0 0 16px #fff, 0 0 32px #007affcc;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.7) rotate(10deg);
+        color: #007aff;
+        text-shadow: 0 0 8px #fff, 0 0 16px #007aff88;
+    }
 }
 
 .whiteboard-resize-handle:hover {
