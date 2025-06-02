@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mousemove', doWhiteboardResize);
     document.addEventListener('mouseup', stopWhiteboardResize);
 
-    // Global keydown listener for Spacebar to toggle video hold
+    // Global keydown listener for Spacebar to toggle video hold and Enter to switch to whiteboard mode
     document.addEventListener('keydown', (event) => {
         if (event.code === 'Space' && !isWhiteboardMode) {
             // Prevent toggling if focus is on an input or button
@@ -210,6 +210,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             event.preventDefault(); // Prevent default spacebar action (e.g., scrolling or button click if focused)
             toggleVideoHold();
+        } else if (event.code === 'Enter' && !isWhiteboardMode) {
+            // Prevent switching if focus is on an input or button
+            const activeElement = document.activeElement;
+            if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'BUTTON')) {
+                return;
+            }
+            event.preventDefault(); // Prevent default enter action
+            startWhiteboardMode();
         }
     });
 });
