@@ -4,6 +4,10 @@ Transform your physical whiteboard or paper into a digital whiteboard using your
 
 🔗 **[Try it live](https://sannysanoff.github.io/whiteboard)**
 
+## Perfect for Online Meetings
+
+This tool is designed for **screen sharing in video conferences**. Use it to broadcast your physical whiteboard or paper notes through Zoom, Google Meet, Microsoft Teams, and other video conferencing platforms. Simply share your browser window/tab to give meeting participants a clear, perspective-corrected view of your whiteboard - no more awkward camera angles or illegible handwriting!
+
 ## Features
 
 - **Real-time perspective correction** - Automatically straightens and squares your whiteboard or paper
